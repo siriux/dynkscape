@@ -7,8 +7,10 @@ initInkscape = () ->
   setBackgroundColor()
 
 setBackgroundColor = () ->
-  background = $("svg namedview").attr("pagecolor")
-  $("svg").css("background", background)
+  background = Snap("svg namedview").attr("pagecolor")
+  # Create a really large centered rect as background
+  bg = sSvg.paper.rect(-50000, -50000, 100000, 100000)
+  bg.attr('fill', background)
 
 initInkscapeLayers = () ->
 
@@ -70,7 +72,7 @@ processToggle = (e, meta) ->
     $el = $(meta.toggle)
 
   return if $el.length != 1 # Element not found, ignore
-     
+
   cues = null
 
   hide = () ->

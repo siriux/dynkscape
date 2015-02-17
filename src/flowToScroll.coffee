@@ -93,7 +93,10 @@ flowToScroll = (flowRoot) ->
       false
 
   # Scroll
-  textContainer.on "mousewheel", (e) ->
+  textContainer.on "mousewheel wheel", (e) ->
     if (not e.ctrlKey) # With ctrl pressed, allow to zoom
-      updateScroll(e.originalEvent.deltaY) # For scroll in mac, otherwise, invert
+      delta = e.originalEvent.wheelDelta || e.originalEvent.deltaY
+      # Negative to simulate mac natural scroll on chrome
+      # TODO Improve for other browsers
+      updateScroll(-delta)
       false

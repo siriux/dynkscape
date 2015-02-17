@@ -19,8 +19,8 @@ initZoomPan = () ->
     # Ideas from
     # http://svg.dabbles.info/snaptut-create-slider-knob.html
     p = container.node.ownerSVGElement.createSVGPoint()
-    p.x = e.clientX
-    p.y = e.clientY
+    p.x = e.originalEvent.clientX
+    p.y = e.originalEvent.clientY
     p.matrixTransform(transformMatrix)
 
   updateTransformMatrix = () ->
@@ -65,11 +65,15 @@ initZoomPan = () ->
         initPending = false
         dragging = false
 
-    .on "mousewheel", (e) ->
+    .on "mousewheel wheel", (e) ->
       dragging = false # stop any pending pan
 
-      delta = e.originalEvent.deltaY
-      scale = 1 + (delta / 100)
+      # Try to normalize across browsers.
+      delta = e.originalEvent.wheelDelta || e.originalEvent.deltaY
+      delta /= 500
+      delta = 0.5 if delta > 0.5
+      delta = -0.5 if delta < -0.5
+      scale = 1 + delta
 
       updateTransformMatrix()
       p = getTransformedFromEvent(e)
@@ -81,3 +85,5 @@ initZoomPan = () ->
         .scale(scale)
         .translate(-p.x, -p.y)
       container.transform(newM)
+
+      false # Avoid zooming on windows if ctrl is pressed
