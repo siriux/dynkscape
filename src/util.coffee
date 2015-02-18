@@ -1,13 +1,21 @@
-# Globals
 sSvg = Snap.select("svg")
-
-# Helper functions
+jSvg = $("svg").first()
 
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
-localMatrix = (element) -> element.transform().localMatrix
-globalMatrix = (element) -> element.transform().globalMatrix
+transformPointWithMatrix = (m, x, y) -> (x: m.x(x, y), y: m.y(x, y))
+
+localMatrix = (element) -> Snap(element).transform().localMatrix
+globalMatrix = (element) -> new Snap.Matrix(Snap(element).node.getScreenCTM())
+actualMatrix = (element, base) -> # Actual matrix with respect to base, including x,y translate
+  baseMatrix = if base? then globalMatrix(base) else globalMatrix(sSvg)
+  elementMatrix = globalMatrix(element)
+
+  e = Snap(element)
+
+  baseMatrix.invert().add(elementMatrix).translate(e.attr("x"), e.attr("y"))
+
 
 # From http://svg.dabbles.info/snaptut-matrix-play
 decomposeMatrix = (matrix) ->

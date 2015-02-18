@@ -8,8 +8,14 @@ init = () ->
 
   $("flowRoot").each (idx, root) -> flowToScroll(root)
 
-  initZoomPan()
+  mainParent = $("svg")[0]
+  layerElements = (l.element for l in inkscapeLayers)
+  mainNavigation = new Navigation(mainParent, layerElements)
 
+  layerNavigation =
+    createNavigationForLayer("zoomPanTest", mainNavigation.container, "zoomPanTestViewport", false)
 
+  $("svg").keypress () ->
+    mainNavigation.navigateToElement($("#view1")[0], (duration: 1000, easing: mina.easeout))
 
 window.addEventListener("load",init)

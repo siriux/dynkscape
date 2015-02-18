@@ -10,6 +10,7 @@ flowToScroll = (flowRoot) ->
   height = rect.attr("height")
   transform = $(flowRoot).attr("transform")
 
+  # TODO Use a viewport instead of an svg???
   viewport = sSvg.paper.svg(x,y,width,height)
   viewportGroup = sSvg.paper.g(viewport)
   viewportGroup.transform(transform)
@@ -55,8 +56,6 @@ flowToScroll = (flowRoot) ->
 
   # Add scroll on foreignObject
 
-  # TODO Adapt scaleFactor to rotation !!!
-  scaleFactor = decomposeMatrix(globalMatrix(viewportGroup)).scaleY
   matrix = localMatrix(fO)
   scroll = 0
   maxScroll = contentHeight - height
@@ -75,7 +74,11 @@ flowToScroll = (flowRoot) ->
   dragging = false
   $(fO.node)
     .mousemove (e) ->
+      # TODO Adapt scaleFactor to rotation !!!
+      scaleFactor = decomposeMatrix(globalMatrix(viewportGroup)).scaleY
+
       prevY ?= e.clientY
+
       if dragging
         delta = (e.clientY - prevY) / scaleFactor
         prevY = e.clientY
