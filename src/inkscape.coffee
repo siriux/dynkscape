@@ -1,5 +1,20 @@
 inkscapeLayersByName = {}
-inkscapeLayers = null
+mainLayer = null
+
+class Layer
+  constructor: (@name, @element, @children) ->
+    @parent = null
+    @slidesLayer = null
+
+    # Find the Slides layer
+    for l in @children
+      if l.name.match(/^Slides.*/i)
+        @slidesLayer = l
+        break
+
+    # Slide layers are hidden by default
+    if @slidesLayer?
+      $(@slidesLayer.element).hide()
 
 initInkscape = () ->
   initInkscapeLayers()
@@ -15,31 +30,29 @@ setBackgroundColor = () ->
 initInkscapeLayers = () ->
 
   inkscapeLayersRecursive = (root) ->
-    root
+    layers = root
       .children("g")
       .filter (idx, g) -> g.getAttribute("inkscape:groupmode") == "layer"
       .map (idx, l) ->
         name = l.getAttribute("inkscape:label")
         children = inkscapeLayersRecursive($(l))
 
-        layerObject =
-          name: name
-          element: l
-          parent: null
-          children: children
+        layer = new Layer(name, l, children)
 
         # Link to children
-        c.parent = layerObject for c in children
+        c.parent = layer for c in children
 
         # Add layer by name
-        inkscapeLayersByName[name] = layerObject
+        inkscapeLayersByName[name] = layer
 
-        layerObject
+        layer
+    $.makeArray(layers)
 
-  inkscapeLayers = inkscapeLayersRecursive($("svg").first())
+  baseLayers = inkscapeLayersRecursive($("svg").first())
+  mainLayer = new Layer("", sSvg.node, baseLayers)
 
-processInkscapeMetaDescs = (callback) ->
-  $("desc").each (idx, d) ->
+processInkscapeMetaDescs = (base, callback) ->
+  $(base).find("desc").each (idx, d) ->
     text = $(d).text()
     if text.match /^\s*#\s*meta/i
       try
@@ -49,15 +62,18 @@ processInkscapeMetaDescs = (callback) ->
       catch # Ignore non meta descs
 
 processDefaultInkscapeMetaDescs = () ->
-  processInkscapeMetaDescs (e, meta) ->
+  processInkscapeMetaDescs document, (e, meta) ->
     if meta.toggle?
       processToggle(e, meta)
 
     if meta.class?
       Snap(e).addClass(meta.class)
 
-    if meta.hidden == true
+    if meta.hasOwnProperty('hidden') && meta.hidden != false
       $(e).hide()
+
+    if meta.viewport?
+      processViewport(e, meta)
 
 processToggle = (e, meta) ->
 
@@ -105,3 +121,27 @@ processToggle = (e, meta) ->
       show()
     else
       hide()
+
+processViewport = (e, meta) ->
+  initViewport = () ->
+    viewEl = $(e).find(".viewport")[0]
+
+    mv = meta.viewport
+
+    userNavigation = mv.hasOwnProperty('userNavigation') && mv.userNavigation != false
+
+    n = new Navigation(mv.layer, viewEl, userNavigation)
+
+    animate = mv.animate
+
+    if animate?
+      animate.easing = loadEasing(animate.easing)
+
+    if mv.start?
+      n.goTo(mv.start)
+
+    $(e).find(".prev").click () => n.goPrev(animate)
+
+    $(e).find(".next").click () => n.goNext(animate)
+
+  setTimeout initViewport, 0 # Delay the init until all the meta is processed

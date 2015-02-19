@@ -8,14 +8,16 @@ init = () ->
 
   $("flowRoot").each (idx, root) -> flowToScroll(root)
 
-  mainParent = $("svg")[0]
-  layerElements = (l.element for l in inkscapeLayers)
-  mainNavigation = new Navigation(mainParent, layerElements)
+  mainNavigation = new Navigation()
 
-  layerNavigation =
-    createNavigationForLayer("zoomPanTest", mainNavigation.container, "zoomPanTestViewport", false)
+  $("svg").keydown (e) ->
+    if e.keyCode == 48
+      mainNavigation.goHome((duration: 1000, easing: mina.easeout))
 
-  $("svg").keypress () ->
-    mainNavigation.navigateToElement($("#view1")[0], (duration: 1000, easing: mina.easeout))
+    if e.keyCode == 39
+      mainNavigation.goNext((duration: 1000, easing: mina.easeout))
+
+    if e.keyCode == 37
+      mainNavigation.goPrev((duration: 1000, easing: mina.easeout))
 
 window.addEventListener("load",init)

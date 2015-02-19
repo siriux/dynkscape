@@ -1,6 +1,9 @@
 sSvg = Snap.select("svg")
 jSvg = $("svg").first()
 
+svgViewBox = jSvg.attr("viewBox").match(/-?[\d\.]+/g)
+svgProportions = svgViewBox[2]/svgViewBox[3]
+
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
@@ -39,3 +42,10 @@ decomposeMatrix = (matrix) ->
   skewX: skewX
   skewY: skewY
   rotation: skewX #rotation is the same as skew x
+
+loadEasing = (name) ->
+  switch name
+    when "linear" then mina.linear
+    when "in" then mina.easein
+    when "out" then mina.easeout
+    when "inout" then mina.easeinout
