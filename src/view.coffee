@@ -11,3 +11,6 @@ class View
     @actualMatrixInverse = actualMatrix(@element).invert()
 
     @scale = decomposeMatrix(@globalMatrix).scaleX
+
+    if (meta?.timeline?)
+      @animation = new Animation(meta.timeline)

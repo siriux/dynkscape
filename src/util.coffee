@@ -43,7 +43,19 @@ decomposeMatrix = (matrix) ->
   skewY: skewY
   rotation: skewX #rotation is the same as skew x
 
-loadEasing = (name) ->
+isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')
+
+stringCmp = (a, b) ->
+  if a < b
+    -1
+  else if a > b
+    1
+  else
+    0
+
+isEasing = (name) -> name in ["linear", "in", "out", "inout"]
+
+getEasing = (name) ->
   switch name
     when "linear" then mina.linear
     when "in" then mina.easein

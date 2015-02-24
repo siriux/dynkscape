@@ -60,6 +60,7 @@ processInkscapeMetaDescs = (base, callback) ->
         parent = d.parentNode
         callback(parent, doc)
       catch # Ignore non meta descs
+        # TODO Show errors to the user?
 
 processDefaultInkscapeMetaDescs = () ->
   processInkscapeMetaDescs document, (e, meta) ->
@@ -135,7 +136,7 @@ processViewport = (e, meta) ->
     animate = mv.animate
 
     if animate?
-      animate.easing = loadEasing(animate.easing)
+      animate.easing = getEasing(animate.easing)
 
     if mv.start?
       n.goTo(mv.start)
