@@ -19,29 +19,19 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
 
   baseMatrix.invert().add(elementMatrix).translate(e.attr("x"), e.attr("y"))
 
+matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
+matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
-# From http://svg.dabbles.info/snaptut-matrix-play
-decomposeMatrix = (matrix) ->
+moveCoordsToMatrix = (element) ->
+  e = Snap(element)
+  local = e.transform().localMatrix
+  newLocal = local.translate(e.attr("x"), e.attr("y"))
+  e.transform(newLocal)
 
-  deltaTransformPoint = (matrix, point) ->
-    x: point.x * matrix.a + point.y * matrix.c + 0
-    y: point.x * matrix.b + point.y * matrix.d + 0
+  e.attr("x", 0)
+  e.attr("y", 0)
 
-  # Calculate delta transform point
-  px = deltaTransformPoint(matrix, (x: 0, y: 1))
-  py = deltaTransformPoint(matrix, (x: 1, y: 0))
-
-  # Calculate skew
-  skewX = ((180 / Math.PI) * Math.atan2(px.y, px.x) - 90)
-  skewY = ((180 / Math.PI) * Math.atan2(py.y, py.x))
-
-  translateX: matrix.e
-  translateY: matrix.f
-  scaleX: Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
-  scaleY: Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
-  skewX: skewX
-  skewY: skewY
-  rotation: skewX #rotation is the same as skew x
+  newLocal
 
 isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')
 

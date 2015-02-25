@@ -1,5 +1,6 @@
 class Navigation
   @mainNavigationContainer: null # Static for the main navigation
+  @byName: {}
 
   constructor: (layerName, viewportEl, userNavigation = true) ->
     @_initWrappersAndContainer(layerName, viewportEl)
@@ -9,11 +10,14 @@ class Navigation
     if (userNavigation)
       @_initUserNavigation()
 
+    Navigation.byName[@name] = this
+
   _initWrappersAndContainer: (layerName, viewportEl) ->
     contents = null
 
     # For layers, init a viewport that will clip the layer
     if (not layerName?) || layerName == ""
+      @name = ""
       @isMain = true
       @viewport = sSvg.node
       @layer = mainLayer
@@ -36,6 +40,7 @@ class Navigation
       snapViewport.append(clip)
       snapViewport.attr("clip-path": "url(##{clip.id})")
 
+      @name = layerName
       @isMain = false
       @viewport = snapViewport.node
       @layer = inkscapeLayersByName[layerName]
@@ -57,7 +62,7 @@ class Navigation
       # Screen is used to be compatible with window size
       clipRect = Snap(@viewport).select("clipPath rect")
       clipGlobaM = globalMatrix(clipRect)
-      clipScale = decomposeMatrix(clipGlobaM).scaleX
+      clipScale = matrixScaleX(clipGlobaM)
 
       @viewportWidth = clipRect.attr("width") * clipScale
       @viewportHeight = clipRect.attr("height") * clipScale
@@ -246,3 +251,8 @@ class Navigation
 
     if v?
       @_navigateToView v, animate
+
+  playCurrentView: (dest) ->
+    v = @viewList[@currentView]
+    if v?
+      v.play(dest)

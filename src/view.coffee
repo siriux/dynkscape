@@ -10,7 +10,9 @@ class View
     @globalMatrix = globalMatrix(@element)
     @actualMatrixInverse = actualMatrix(@element).invert()
 
-    @scale = decomposeMatrix(@globalMatrix).scaleX
+    @scale = matrixScaleX(@globalMatrix)
 
-    if (meta?.timeline?)
-      @animation = new Animation(meta.timeline)
+    if (meta?.view?.timeline?)
+      @animation = new Animation(meta.view.timeline)
+
+  play: (dest) -> @animation.play(dest)

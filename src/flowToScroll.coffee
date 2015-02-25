@@ -75,7 +75,7 @@ flowToScroll = (flowRoot) ->
   $(fO.node)
     .mousemove (e) ->
       # TODO Adapt scaleFactor to rotation !!!
-      scaleFactor = decomposeMatrix(globalMatrix(viewportGroup)).scaleY
+      scaleFactor = matrixScaleY(globalMatrix(viewportGroup))
 
       prevY ?= e.clientY
 

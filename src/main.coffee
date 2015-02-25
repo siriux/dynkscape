@@ -20,4 +20,11 @@ init = () ->
     if e.keyCode == 37
       mainNavigation.goPrev((duration: 1000, easing: mina.easeout))
 
+  setTimeout run, 0
+
+run = () ->
+  n = Navigation.byName[""]
+  n.goTo(0)
+  n.playCurrentView()
+
 window.addEventListener("load",init)
