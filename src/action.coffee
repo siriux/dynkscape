@@ -1,10 +1,29 @@
 class ActionContext
   constructor: () ->
     @time = 0
-    @target
-    @duration = 1000
-    @easing = "linear"
-    @center = [0.5, 0.5]
+    @target = null
+    @duration = null
+    @easing = null
+    @center = null
+
+  fillDefaults: (defs) =>
+    if not @duration?
+      if defs?.duration?
+        @duration = defs.duration
+      else
+        @duration = 1000
+
+    if not @easing?
+      if defs?.easing?
+        @easing = defs.easing
+      else
+        @easing = "linear"
+
+    if not @center?
+      if defs?.center?
+        @center = defs.center
+      else
+        @center = [0.5, 0.5]
 
   clone: () ->
     ctx = new ActionContext()
@@ -12,7 +31,8 @@ class ActionContext
     ctx.target = @target
     ctx.duration = @duration
     ctx.easing = @easing
-    ctx.center = [@center[0], @center[1]]
+    if @center?
+      ctx.center = [@center[0], @center[1]]
     ctx
 
   @compare: (a, b) ->
@@ -61,10 +81,12 @@ class Action
       state.changeCenter(@context.center)
 
     offset = time - @context.time
-    delta = Math.min(Math.max(offset / @context.duration, 0), 1)
+    rawDelta = Math.min(Math.max(offset / @context.duration, 0), 1)
 
-    if 0 < delta < 1
-      delta = getEasing(@context.easing)(delta)
+    if 0 < rawDelta < 1
+      delta = getEasing(@context.easing)(rawDelta)
+    else
+      delta = rawDelta
 
     if @translateX?
       state.translateX += @translateX * delta
@@ -85,3 +107,6 @@ class Action
 
     if @opacity?
       state.opacity = @opacity * delta
+
+    if @effect?
+      applyEffect(@effect, this, state, delta, rawDelta)

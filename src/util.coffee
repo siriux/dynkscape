@@ -33,7 +33,11 @@ moveCoordsToMatrix = (element) ->
 
   newLocal
 
-isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')
+isID = (s) ->
+  if typeof s is 'string' and (s.charAt(0) is '#')
+    $(s).length == 1
+  else
+    false
 
 stringCmp = (a, b) ->
   if a < b

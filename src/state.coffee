@@ -49,6 +49,9 @@ class State
 
     s
 
+  width: () => @animationObject.width
+  height: () => @animationObject.height
+
   clone: () =>
     s = new State()
     s.translateX = @translateX

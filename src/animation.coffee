@@ -18,7 +18,7 @@ class Animation
         processParallel(o, ctx)
 
     processSequential = (a, ctx) =>
-      c = ctx
+      c = ctx.clone()
       for l in a
         end = process(l, c)
         c = ctx.clone()
@@ -35,38 +35,39 @@ class Animation
       if o.offset?
         ctx.time += o.offset
 
-      if o.duration?
+      if o.duration != undefined # Use undefined to allow null reset
         ctx.duration = o.duration
         totalDuration = o.duration
 
-      if o.easing?
+      if o.easing != undefined # Use undefined to allow null reset
         ctx.easing = o.easing
 
-      if o.center?
+      if o.center != undefined # Use undefined to allow null reset
         ctx.center = o.center
 
-      endTime = ctx.time + ctx.duration
+      endTime = ctx.time
 
       for key, value of o
         offset = parseFloat(key)
+        c = ctx.clone()
         if !isNaN(offset) # Is a number?
-          c = ctx.clone()
           c.time += offset
           end = process(value, c)
         else if isID(key)
-          c = ctx.clone()
           c.target = key
           end = process(value, c)
         else
           if key in ["start", "target", "offset", "duration", "easing", "center"]
             continue
-          end = processAction(key, value, ctx.clone())
+          end = processAction(key, value, c)
 
         endTime = Math.max(endTime, end)
 
       endTime
 
     processAction = (key, value, ctx) =>
+
+      value = [null] if value is null
 
       value = [].concat(value) # Convert to array if needed
 
@@ -173,6 +174,13 @@ class Animation
 
           processDuration()
           processEasing()
+
+          applyEffectDefaults(ctx, key, a)
+
+        else
+          return ctx.time # Avoid adding extra duration
+
+      ctx.fillDefaults()
 
       ctx.time + ctx.duration
 
@@ -281,7 +289,7 @@ class Animation
 
       if @currentTime >= ctx.time + ctx.duration
         # If closing, apply the action to the current state too
-        # so that in next iteration, it's taken into account 
+        # so that in next iteration, it's taken into account
         ao.addAction(a, @currentTime)
         false
       else

@@ -57,10 +57,11 @@ processInkscapeMetaDescs = (base, callback) ->
     if text.match /^\s*#\s*meta/i
       try
         doc = jsyaml.load(text)
-        parent = d.parentNode
-        callback(parent, doc)
-      catch # Ignore non meta descs
-        # TODO Show errors to the user?
+      catch e # Ignore non meta descs
+        console.log "Error parsing meta: #{text}"
+        throw e
+      parent = d.parentNode
+      callback(parent, doc)
 
 processDefaultInkscapeMetaDescs = () ->
   processInkscapeMetaDescs document, (e, meta) ->
