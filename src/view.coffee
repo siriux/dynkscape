@@ -4,13 +4,12 @@ class View
 
     @id = se.attr("id")
     @index = meta?.view?.index
+    
     @width = se.attr("width")
     @height = se.attr("height")
+    @scale = matrixScaleX(globalMatrix(@element))
 
-    @globalMatrix = globalMatrix(@element)
     @actualMatrixInverse = actualMatrix(@element).invert()
-
-    @scale = matrixScaleX(@globalMatrix)
 
     if (meta?.view?.timeline?)
       @animation = new Animation(meta.view.timeline)

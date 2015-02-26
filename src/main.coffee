@@ -4,11 +4,14 @@ init = () ->
     .attr("width", "100%")
     .attr("height", "100%")
 
+  updateWindowDimensions()
   initInkscape()
 
   $("flowRoot").each (idx, root) -> flowToScroll(root)
 
   mainNavigation = new Navigation()
+
+  ###
 
   $("svg").keydown (e) ->
     if e.keyCode == 48
@@ -19,12 +22,14 @@ init = () ->
 
     if e.keyCode == 37
       mainNavigation.goPrev((duration: 1000, easing: mina.easeout))
+  ###
 
   setTimeout run, 0
 
 run = () ->
   n = Navigation.byName[""]
-  n.goTo(0)
-  n.playCurrentView()
+  v = n?.viewsByName["MainSlide0"]
+  v?.play()
+
 
 window.addEventListener("load",init)

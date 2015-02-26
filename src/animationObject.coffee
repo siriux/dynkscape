@@ -8,6 +8,7 @@ class AnimationObject
     @provisionalState = null
 
   setBase: (state) =>
+    state.animationObject = this
     @baseState = state
     @reset()
 

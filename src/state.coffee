@@ -14,7 +14,7 @@ class State
 
     # TODO origin for scale, and another one for rotation
 
-  @_stateFromMatrix: (matrix) ->
+  @fromMatrix: (matrix) ->
     # From http://svg.dabbles.info/snaptut-matrix-play
 
     deltaTransformPoint = (matrix, point) ->
@@ -40,7 +40,7 @@ class State
 
   @fromAnimationObject: (ao) ->
     e = ao.element
-    s = @_stateFromMatrix(moveCoordsToMatrix(e))
+    s = @fromMatrix(moveCoordsToMatrix(e))
     s.animationObject = ao
     s.opacity = $(e).css("opacity")
 
@@ -65,21 +65,14 @@ class State
     s
 
   changeCenter: (c) =>
-    vecX = (@center[0] - c[0]) * @animationObject.width
-    vecY = (@center[1] - c[1]) * @animationObject.height
+    vec =
+      x: (c[0] - @center[0]) * @animationObject.width
+      y: (c[1] - @center[1]) * @animationObject.height
 
-    sX = vecX * @scaleX
-    sY = vecY * @scaleY
+    trans = @transformPoint(vec)
 
-    theta = @rotation * (Math.PI / 180)
-    sinT = Math.sin(theta)
-    cosT = Math.cos(theta)
-
-    rX = sX*cosT - sY*sinT
-    rY = sX*sinT + sY*cosT
-
-    @translateX += vecX - rX
-    @translateY += vecY - rY
+    @translateX = trans.x - vec.x
+    @translateY = trans.y - vec.y
 
     @center = c
 
@@ -96,3 +89,27 @@ class State
     e = @animationObject.element
     Snap(e).transform(@_toMatrix())
     $(e).css("opacity", @opacity)
+
+  transformPoint: (p) => # Don't take into account center !!
+    rP = rotatePoint(p, @rotation)
+
+    sX = rP.x * @scaleX
+    sY = rP.y * @scaleY
+
+    x: sX + @translateX
+    y: sY + @translateY
+
+  transformPointInverse: (p) => # Don't take into account center !!
+    tX = p.x - @translateX
+    tY = p.y - @translateY
+
+    sX = tX / @scaleX
+    sY = tY / @scaleY
+
+    rotatePoint((x: sX, y: sY), -@rotation)
+
+  scaleRotatePointInverse: (p) => # Don't take into account center !!
+    sX = p.x / @scaleX
+    sY = p.y / @scaleY
+
+    rotatePoint((x: sX, y: sY), -@rotation)

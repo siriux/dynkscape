@@ -2,12 +2,27 @@ sSvg = Snap.select("svg")
 jSvg = $("svg").first()
 
 svgViewBox = jSvg.attr("viewBox").match(/-?[\d\.]+/g)
-svgProportions = svgViewBox[2]/svgViewBox[3]
+svgPageWidth = svgViewBox[2]
+svgPageHeight = svgViewBox[3]
+svgProportions = svgPageWidth/svgPageHeight
+
+updateWindowDimensions = () =>
+  @windowWidth = $(window).width()
+  @windowHeight = $(window).height()
+  @windowProportions = @windowWidth/@windowHeight
+
+  if @windowProportions <= svgProportions
+    @svgPageScale = @windowWidth / @svgPageWidth
+  else
+    @svgPageScale = @windowHeight / @svgPageHeight
+
+  @svgPageOffsetX = (@windowWidth - (@svgPageWidth*@svgPageScale)) / 2
+  @svgPageOffsetY = (@windowHeight - (@svgPageHeight*@svgPageScale)) / 2
+
+$(window).resize(updateWindowDimensions)
 
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
-
-transformPointWithMatrix = (m, x, y) -> (x: m.x(x, y), y: m.y(x, y))
 
 localMatrix = (element) -> Snap(element).transform().localMatrix
 globalMatrix = (element) -> new Snap.Matrix(Snap(element).node.getScreenCTM())
@@ -21,6 +36,14 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
 
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
+
+rotatePoint = (p, degress) ->
+  radians = degress * (Math.PI / 180)
+  sin = Math.sin(radians)
+  cos = Math.cos(radians)
+
+  x: p.x*cos - p.y*sin
+  y: p.x*sin + p.y*cos
 
 moveCoordsToMatrix = (element) ->
   e = Snap(element)
