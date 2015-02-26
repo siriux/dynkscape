@@ -234,22 +234,7 @@ class Animation
 
   _play: (length) =>
     @resetObjects()
-
-    start = null
-    last = null
-
-    step = (timestamp) =>
-      if !start
-        start = timestamp
-        last = start
-      progress = timestamp - start
-      delta = timestamp - last
-      last = timestamp
-      @advanceTime(delta)
-      if (progress < length)
-        window.requestAnimationFrame(step)
-
-    window.requestAnimationFrame(step)
+    animate(length, @advanceTime)
 
   play: (dest) =>
     @currentTime = 0
@@ -294,7 +279,6 @@ class Animation
         false
       else
         true
-
 
     # Apply the provisional state to the element
     changed.forEach (o) -> o.applyProvisional()

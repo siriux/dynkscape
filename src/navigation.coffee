@@ -95,3 +95,54 @@ class Navigation
           @viewport.scale(scale, cx, cy)
 
         false # Avoid zooming on windows if ctrl is pressed
+
+  _getStateForMaximizedView: (view) =>
+    s = view.state.diff(@viewport.state)
+    s.animationObject = @viewport.animationObject
+    @viewport.animationObject.currentState = s
+
+    # Modify rotate point to be the current translate (corner of the viewport)
+    s.center = [-s.translateX / svgPageWidth, -s.translateY / svgPageHeight]
+
+    # Get scale factors needed to fit viewport in either direction
+    viewportWidth = if @viewport.isMain then svgPageCorrectedWidth else @viewport.width
+    viewportHeight = if @viewport.isMain then svgPageCorrectedHeight else @viewport.height
+    viewportProportions = viewportWidth / viewportHeight
+
+    scaleHorizontal = viewportWidth / view.width
+    scaleVertical = viewportHeight / view.height
+
+    scaleFactor = null # Final scale factor
+    tx = 0
+    ty = 0
+
+    if scaleHorizontal > scaleVertical
+      scaleFactor = scaleVertical
+      tx = ((view.height * viewportProportions) - view.width) / 2 # Center horizontally on window
+    else
+      scaleFactor = scaleHorizontal
+      ty = ((view.width / viewportProportions) - view.height) / 2 # Center vertically on window
+
+    if @viewport.isMain
+      # Correct page centering on the viewport
+      if svgProportions > viewportProportions
+        ty -= ((viewportHeight - (viewportWidth / svgProportions)) / 2) / scaleFactor
+      else
+        tx -= ((viewportWidth - (viewportHeight * svgProportions)) / 2) / scaleFactor
+
+    s.translateX += tx * scaleFactor
+    s.translateY += ty * scaleFactor
+
+    s.scaleX *= scaleFactor
+    s.scaleY *= scaleFactor
+
+    s.changeCenter([0,0])
+
+    s
+
+  goToView: () =>
+    view = @viewsByName["mainSlide0"]
+
+    s = @_getStateForMaximizedView(view)
+
+    s.apply()

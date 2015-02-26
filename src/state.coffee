@@ -44,7 +44,7 @@ class State
     s.animationObject = ao
     s.opacity = $(e).css("opacity")
 
-    # _stateFromMatrix has de wrong default center
+    # fromMatrix has de wrong default center
     s.changeCenter([0.5, 0.5])
 
     s
@@ -76,19 +76,26 @@ class State
 
     @center = c
 
-  _toMatrix: () =>
-    cx = @animationObject.width*@center[0]
-    cy = @animationObject.height*@center[1]
-
-    new Snap.Matrix()
-      .translate(@translateX, @translateY)
-      .scale(@scaleX, @scaleY, cx, cy)
-      .rotate(@rotation, cx, cy)
-
   apply: () =>
-    e = @animationObject.element
-    Snap(e).transform(@_toMatrix())
-    $(e).css("opacity", @opacity)
+
+    # Calculate position on current center
+    vec =
+      x: - @center[0] * @animationObject.width
+      y: - @center[1] * @animationObject.height
+
+    trans = @transformPoint(vec)
+
+    tx = trans.x - vec.x
+    ty = trans.y - vec.y
+
+    # Apply transform
+
+    e = $(@animationObject.element)
+    e.attr
+      transform: "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})"
+
+    e.css
+      opacity: @opacity
 
   transformPoint: (p) => # Don't take into account center !!
     rP = rotatePoint(p, @rotation)
@@ -113,3 +120,23 @@ class State
     sY = p.y / @scaleY
 
     rotatePoint((x: sX, y: sY), -@rotation)
+
+  diff: (dest) =>
+    # If dest center is not the right one, change it before diffing
+    if dest.center[0] != @center[0] or dest.center[1] != @center[1]
+      dest = dest.clone()
+      dest.changeCenter(@center)
+
+    s = new State()
+
+    s.translateX = dest.translateX - @translateX
+    s.translateY = dest.translateY - @translateY
+    s.scaleX = dest.scaleX/@scaleX
+    s.scaleY = dest.scaleY/@scaleY
+    s.rotation = dest.rotation - @rotation
+
+    s.opacity = @opacity
+    s.center = @center
+    s.animationObject = null
+
+    s

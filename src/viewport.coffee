@@ -11,13 +11,15 @@ class Viewport
       @element = sSvg.node
       @layer = mainLayer
 
-      @width = windowWidth
-      @height = windowHeight
+      @state = new State()
+      @state.center = [0,0] # To use the same default
 
       contents = (l.element for l in mainLayer.children)
     else
       moveCoordsToMatrix(viewportEl)
       viewEl = Snap(viewportEl)
+
+      viewportMatrix = actualMatrix(viewEl) # TODO Remove transformations of parent? Is needed?
 
       snapViewport = Snap(Viewport.main.container).g()
 
@@ -25,7 +27,7 @@ class Viewport
       bg = snapViewport.rect(0,0,viewEl.attr("width"),viewEl.attr("height"))
       bg.attr
         fill: "rgba(0,0,0,0)" # Transparent
-        transform: actualMatrix(viewEl) # TODO Remove transformations of parent? Is needed?
+        transform: viewportMatrix
 
       # Clip the layer to the viewport
       clip = Snap(svgElement("clipPath"))
@@ -40,15 +42,11 @@ class Viewport
       @element = snapViewport.node
       @layer = inkscapeLayersByName[layerName]
 
-      # Get clipping screen dimensions of the viewport
-      # Screen is used to be compatible with window size
-      clipScale = matrixScaleX(globalMatrix(clipRect))
-      @width = clipRect.attr("width") * clipScale
-      @height = clipRect.attr("height") * clipScale
+      @width = clipRect.attr("width")
+      @height = clipRect.attr("height")
+      @state = State.fromMatrix(viewportMatrix)
 
       contents = @layer.element
-
-    @proportions = @width/@height
 
     @container = Snap(@element).g().node
     $(@container).append(contents)

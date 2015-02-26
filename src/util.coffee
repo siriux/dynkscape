@@ -11,10 +11,15 @@ updateWindowDimensions = () =>
   @windowHeight = $(window).height()
   @windowProportions = @windowWidth/@windowHeight
 
+  @svgPageCorrectedWidth = svgPageWidth
+  @svgPageCorrectedHeight = svgPageHeight
+
   if @windowProportions <= svgProportions
     @svgPageScale = @windowWidth / @svgPageWidth
+    @svgPageCorrectedHeight = svgPageCorrectedWidth / @windowProportions
   else
     @svgPageScale = @windowHeight / @svgPageHeight
+    @svgPageCorrectedWidth = svgPageCorrectedHeight * @windowProportions
 
   @svgPageOffsetX = (@windowWidth - (@svgPageWidth*@svgPageScale)) / 2
   @svgPageOffsetY = (@windowHeight - (@svgPageHeight*@svgPageScale)) / 2
@@ -69,6 +74,23 @@ stringCmp = (a, b) ->
     1
   else
     0
+
+animate = (length, advanceTime) ->
+  start = null
+  last = null
+
+  step = (timestamp) =>
+    if !start
+      start = timestamp
+      last = start
+    progress = timestamp - start
+    delta = timestamp - last
+    last = timestamp
+    advanceTime(delta)
+    if (progress < length)
+      window.requestAnimationFrame(step)
+
+  window.requestAnimationFrame(step)
 
 isEasing = (name) -> name in ["linear", "in", "out", "inout"]
 
