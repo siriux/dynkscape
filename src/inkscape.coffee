@@ -12,9 +12,9 @@ class Layer
         @slidesLayer = l
         break
 
-    # Slide layers are hidden by default
-    if @slidesLayer?
-      $(@slidesLayer.element).hide()
+  show: () => $(@element).show()
+
+  hide: () => $(@element).hide()
 
 initInkscape = () ->
   initInkscapeLayers()
@@ -74,8 +74,8 @@ processDefaultInkscapeMetaDescs = () ->
     if meta.hasOwnProperty('hidden') && meta.hidden != false
       $(e).hide()
 
-    if meta.viewport?
-      processViewport(e, meta)
+    if meta.navigation?
+      processNavigation(e, meta)
 
 processToggle = (e, meta) ->
 
@@ -124,26 +124,9 @@ processToggle = (e, meta) ->
     else
       hide()
 
-processViewport = (e, meta) ->
-  initViewport = () ->
-    viewEl = $(e).find(".viewport")[0]
-
-    mv = meta.viewport
-
-    userNavigation = mv.hasOwnProperty('userNavigation') && mv.userNavigation != false
-
-    n = new Navigation(mv.layer, viewEl, userNavigation)
-
-    animate = mv.animate
-
-    if animate?
-      animate.easing = getEasing(animate.easing)
-
-    if mv.start?
-      n.goTo(mv.start)
-
-    $(e).find(".prev").click () => n.goPrev(animate)
-
-    $(e).find(".next").click () => n.goNext(animate)
-
-  setTimeout initViewport, 0 # Delay the init until all the meta is processed
+processNavigation = (e, meta) ->
+  initNavigation = () ->
+    # Main is handled in a separate way
+    if (meta.navigation.layer? and meta.navigation.layer != "")
+      new Navigation(e, meta)
+  setTimeout initNavigation, 0 # Delay the init until all the meta is processed

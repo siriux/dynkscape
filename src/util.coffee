@@ -75,7 +75,7 @@ stringCmp = (a, b) ->
   else
     0
 
-animate = (length, advanceTime) ->
+animate = (length, advanceTime, onEnd) ->
   start = null
   last = null
 
@@ -89,6 +89,8 @@ animate = (length, advanceTime) ->
     advanceTime(delta)
     if (progress < length)
       window.requestAnimationFrame(step)
+    else if onEnd?
+      onEnd()
 
   window.requestAnimationFrame(step)
 

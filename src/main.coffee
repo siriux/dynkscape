@@ -1,6 +1,6 @@
 init = () ->
   # Full screen
-  $("svg")
+  jSvg
     .attr("width", "100%")
     .attr("height", "100%")
 
@@ -9,29 +9,25 @@ init = () ->
 
   $("flowRoot").each (idx, root) -> flowToScroll(root)
 
-  mainNavigation = new Navigation()
-
-  $("svg").keydown (e) ->
-    if e.keyCode == 48
-      mainNavigation.goToView()
+  # Init main navigation !
+  new Navigation(jSvg[0])
 
   setTimeout run, 0
 
-###
-    if e.keyCode == 48
-      mainNavigation.goHome((duration: 1000, easing: mina.easeout))
-
-    if e.keyCode == 39
-      mainNavigation.goNext((duration: 1000, easing: mina.easeout))
-
-    if e.keyCode == 37
-      mainNavigation.goPrev((duration: 1000, easing: mina.easeout))
-###
 
 run = () ->
-  n = Navigation.byName[""]
-  v = n?.viewsByName["MainSlide0"]
-  v?.play()
+  #v = Navigation.main.viewsByName["MainSlide0"]
+  #v?.play()
+
+  jSvg.keydown (e) ->
+    if e.keyCode == 48
+      Navigation.active.goTo(0)
+
+    if e.keyCode == 39
+      Navigation.active.goNext()
+
+    if e.keyCode == 37
+      Navigation.active.goPrev()
 
 
 window.addEventListener("load",init)
