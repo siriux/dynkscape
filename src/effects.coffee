@@ -3,12 +3,19 @@ _effectDescs = {}
 registerEffect = (effect) ->
   _effectDescs[effect.name] = effect
 
-applyEffectDefaults = (context, effect, action) ->
-  d = _effectDescs[effect]?.defaults
-  if typeof d is "function"
-    d(context, action)
-  else
-    context.fillDefaults(d)
+initEffect = (effect, action) ->
+  e = _effectDescs[effect]
+
+  if e?
+    # Apply Defaults
+    d = e.defaults
+    if typeof d is "function"
+      d(action)
+    else
+      action.context.fillDefaults(d)
+
+    # Run init function if present
+    e.init?(action)
 
 applyEffect = (effect, action, state, delta, rawDelta) ->
   _effectDescs[effect]?.f(action, state, delta, rawDelta)
@@ -56,3 +63,29 @@ registerEffect
           state.scaleX *= 1 + delta
           state.scaleY *= 1 + delta
         state.opacity = 1 - delta
+
+registerEffect
+  name: "translateOnId"
+  init: (action) ->
+    p = action.pathId.split('$')
+    sp = Snap(p[0])
+    path =
+     if sp.hasClass("translatePath")
+       sp
+     else
+       sp.select(".translatePath")
+
+    if (p[1]?)
+      range = p[1].split("..")
+      first = parseInt(range[0])
+      last = parseInt(range[1])
+
+    pathString = path.attr("d")
+
+    action.path = new Bezier(pathString, first, last)
+
+  f: (action, state, delta, rawDelta) ->
+    p = action.path.getPoint(delta)
+
+    state.translateX += p.x
+    state.translateY += p.y

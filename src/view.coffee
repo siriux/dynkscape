@@ -18,5 +18,3 @@ class View
       v.animation = new Animation(meta.view.timeline)
 
     v
-
-  play: (dest) -> @animation.play(dest)

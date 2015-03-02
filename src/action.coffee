@@ -73,7 +73,6 @@ class Action
     if a.opacity?
       @opacity = a.opacity
 
-
   applyTo: (state, time) =>
 
     # If state center is not the right one, change it before applying

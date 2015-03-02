@@ -75,25 +75,6 @@ stringCmp = (a, b) ->
   else
     0
 
-animate = (length, advanceTime, onEnd) ->
-  start = null
-  last = null
-
-  step = (timestamp) =>
-    if !start
-      start = timestamp
-      last = start
-    progress = timestamp - start
-    delta = timestamp - last
-    last = timestamp
-    advanceTime(delta)
-    if (progress < length)
-      window.requestAnimationFrame(step)
-    else if onEnd?
-      onEnd()
-
-  window.requestAnimationFrame(step)
-
 isEasing = (name) -> name in ["linear", "in", "out", "inout"]
 
 getEasing = (name) ->

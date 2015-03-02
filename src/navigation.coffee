@@ -84,26 +84,54 @@ class Navigation
 
   _setCurrentView: (n) =>
     @currentView = n
-    @currentSlideElement?.textContent = if n? then n else "-"
+    @currentSlideElementText?.textContent = if n? then n else "-"
+
+    v = @viewList[@currentView]
+    if v?.animation?
+      $(@animationElements).css(opacity: 1)
+    else
+      $(@animationElements).css(opacity: 0.1)
 
   _initNavigationControl: () ->
+
+    @activeCueElement = $(@control).find(".activeCue")[0]
+    @homeSlideElement = $(@control).find(".homeSlide")[0]
+    @prevSlideElement = $(@control).find(".prevSlide")[0]
+    @currentSlideElement = $(@control).find(".currentSlide")[0]
+    @currentSlideElementText = $(@currentSlideElement).find("tspan")[0]
+    @nextSlideElement = $(@control).find(".nextSlide")[0]
+    @playElement = $(@control).find(".play")[0]
+    @pauseElement = $(@control).find(".pause").hide()[0]
+    @playNextElement = $(@control).find(".playNext")[0]
+    @replayCurrentElement = $(@control).find(".replayCurrent")[0]
+    @prevLabelElement = $(@control).find(".prevLabel")[0]
+    @currentLabelElement = $(@control).find(".currentLabel")[0]
+    @currentLabelElementText = $(@currentLabelElement).find("tspan")[0]
+    @nextLabelElement = $(@control).find(".nextLabel")[0]
     @lockElement = $(@control).find(".lock")[0]
     @showViewsElement = $(@control).find(".showViews")[0]
-    @activeCueElement = $(@control).find(".activeCue")[0]
-    @currentSlideElement = $(@control).find(".currentSlide tspan")[0]
-    @currentPlayElement = $(@control).find(".play")[0]
-    @currentPauseElement = $(@control).find(".pause").hide()[0]
+    @fullViewElement = $(@control).find(".fullView")[0]
+
+    @animationElements = [@playElement,@pauseElement,@playNextElement,@replayCurrentElement,@prevLabelElement,@currentLabelElement,@nextLabelElement]
 
     $(@control).click () =>
       Navigation.active._setActive(false)
       @_setActive(true)
 
-    $(@control).find(".homeSlide").click () => @goTo(0)
-    $(@control).find(".prevSlide").click () => @goPrev()
-    $(@control).find(".nextSlide").click () => @goNext()
+    $(@homeSlideElement).click () => @goTo(0)
+    $(@prevSlideElement).click () => @goPrev()
+    $(@nextSlideElement).click () => @goNext()
+
+    $(@playElement).click () => @viewPlay()
+    $(@pauseElement).click () => @viewPause()
+    $(@playNextElement).click () => @viewPlayNext()
+    $(@replayCurrentElement).click () => @viewReplayCurrent()
+    $(@prevLabelElement).click () => @viewPrevLabel()
+    $(@nextLabelElement).click () => @viewNextLabel()
+
     $(@lockElement).click () => @_setLock(not @lock)
     $(@showViewsElement).click () => @_setShowViews(not @showViews)
-    $(@control).find(".fullView").click () => @goFull()
+    $(@fullViewElement).click () => @goFull()
 
   _initUserNavigation: () ->
     prevX = 0
@@ -285,7 +313,8 @@ class Navigation
         ao.apply()
         @animating = false
 
-      animate(view.duration, advanceTime, onEnd)
+      ba = new BaseAnimation(view.duration, advanceTime, onEnd)
+      ba.play()
 
   goTo: (dest) =>
     if not @animating
@@ -332,3 +361,28 @@ class Navigation
       @_setCurrentView(null)
 
       @goToView(@fullView, false) # Don't perform page centering
+
+  viewPlay: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      $(@pauseElement).show()
+      $(@playElement).hide()
+      v.animation.play null, () =>
+        $(@pauseElement).hide()
+        $(@playElement).show()
+
+
+  viewPause: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      $(@pauseElement).hide()
+      $(@playElement).show()
+      v.animation.pause()
+
+  viewPlayNext: () =>
+
+  viewReplayCurrent: () =>
+
+  viewPrevLabel: () =>
+
+  viewNextLabel: () =>

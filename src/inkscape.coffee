@@ -5,12 +5,17 @@ class Layer
   constructor: (@name, @element, @children) ->
     @parent = null
     @slidesLayer = null
+    @animationLayer = null
 
-    # Find the Slides layer
+    # Find the Slides and Animation layers
     for l in @children
       if l.name.match(/^Slides.*/i)
         @slidesLayer = l
-        break
+
+      if l.name.match(/^Animation.*/i)
+        @animationLayer = l
+
+    @animationLayer?.hide() # Animation layers are hidden by default
 
   show: () => $(@element).show()
 

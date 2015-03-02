@@ -162,20 +162,26 @@ class Animation
 
         # Effects
 
-        when "attention", "hide", "show"
+        when "attention", "hide", "show", "translateOnId"
           a = new Action(ctx)
           @actions.push(a)
 
           a.effect = key
 
-          processTarget()
+          if key in ["attention", "hide", "show"]
+            processTarget()
+            a.type = value.shift()
 
-          a.type = value.shift()
+          else if key is "translateOnId"
+            # Target cannot be provided explicitly, otherwise, it's ambiguous
+            a.pathId = value.shift()
+          else
+            null # scaleOnId, rotateOnId
 
           processDuration()
           processEasing()
 
-          applyEffectDefaults(ctx, key, a)
+          initEffect(key, a)
 
         else
           return ctx.time # Avoid adding extra duration
@@ -232,15 +238,21 @@ class Animation
 
   resetObjects: () => o.reset() for k, o of @objects
 
-  _play: (length) =>
-    @resetObjects()
-    animate(length, @advanceTime)
+  _play: (length, onEnd) =>
+    if not @currentBaseAnimation?
+      @resetObjects()
 
-  play: (dest) =>
-    @currentTime = 0
-    @currentActions = []
-    @nextAction = 0
+      @currentTime = 0
+      @currentActions = []
+      @nextAction = 0
 
+      @currentBaseAnimation = new BaseAnimation length, @advanceTime, () =>
+        @currentBaseAnimation = null
+        onEnd()
+
+    @currentBaseAnimation.play()
+
+  play: (dest, onEnd) =>
     if dest?
       if typeof dest is 'string'
         l = @labelByName[dest]
@@ -249,9 +261,12 @@ class Animation
         l = @labels[dest]
 
       if l?
-        @_play(l.time)
+        @_play(l.time, onEnd)
     else
-      @_play(@duration)
+      @_play(@duration, onEnd)
+
+  pause: () =>
+    @currentBaseAnimation?.pause()
 
   advanceTime: (delta) =>
     @currentTime += delta
