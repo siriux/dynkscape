@@ -2,6 +2,8 @@ class View
   @fromElement: (element, meta) ->
     v = new View()
 
+    v.element = element
+
     se = Snap(element)
 
     v.index = meta.view.index

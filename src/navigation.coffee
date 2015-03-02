@@ -29,8 +29,8 @@ class Navigation
     @_initUserNavigation()
     @_initNavigationControl()
 
-    @_setLock(mnav.hasOwnProperty('lock') && mnav.lock != false)
-    @_setShowViews(mnav.hasOwnProperty('showViews') && mnav.showViews != false)
+    @_setLock(mnav.hasOwnProperty("lock") && mnav.lock != false)
+    @_setShowViews(mnav.hasOwnProperty("showViews") && mnav.showViews != false)
     @_setActive(@viewport.isMain)
 
     Navigation.byName[@name] = this
@@ -41,8 +41,13 @@ class Navigation
       @_setCurrentView(null)
 
   _loadViews: () =>
-    # Views
     @slidesLayer = @viewport.layer.slidesLayer
+
+    # Set the slides layer on top
+    se = @slidesLayer.element
+    $(se).appendTo(se.parentNode)
+
+    # Views
     @viewIndexByName = {}
     @viewList = []
     if @slidesLayer?
@@ -52,6 +57,17 @@ class Navigation
           @viewList.push(v)
       @viewList.sort (a, b) -> a.index - b.index
       @viewIndexByName[v.name] = i for v, i in @viewList
+
+    # Make views clickable
+    for v, i in @viewList
+      e = v.element
+
+      Snap(e).attr(fill: "#7c8ba0", "fill-opacity": 0.5)
+
+      do (i) =>
+        $(e).click () =>
+          @goTo(i)
+          @_setShowViews(false)
 
     # Full View
     @fullView = new View()

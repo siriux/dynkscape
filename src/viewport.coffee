@@ -46,6 +46,9 @@ class Viewport
       @height = clipRect.attr("height")
       @state = State.fromMatrix(viewportMatrix)
 
+      # Replace the layer with @element, needed to keep z-order
+      $(@layer.element).replaceWith(@element)
+
       contents = @layer.element
 
     @container = Snap(@element).g().node
