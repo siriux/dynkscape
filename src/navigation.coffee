@@ -108,6 +108,21 @@ class Navigation
     else
       $(@animationElements).css(opacity: 0.1)
 
+    if not n? or n == 0
+      $(@prevSlideElement).css(opacity: 0.1)
+    else
+      $(@prevSlideElement).css(opacity: 1)
+
+    if not n? or n == @viewList.length - 1
+      $(@nextSlideElement).css(opacity: 0.1)
+    else
+      $(@nextSlideElement).css(opacity: 1)
+
+    if not n?
+      $(@currentSlideElementText).css(opacity: 0.1)
+    else
+      $(@currentSlideElementText).css(opacity: 1)
+
   _initNavigationControl: () ->
 
     @activeCueElement = $(@control).find(".activeCue")[0]
@@ -350,9 +365,7 @@ class Navigation
         n -= 1
         if n < 0
           n = 0
-      else
-        n = 0
-      @goTo(n)
+        @goTo(n)
 
   goNext: () =>
     if @viewList.length > 0
@@ -361,9 +374,7 @@ class Navigation
         n += 1
         if n > @viewList.length - 1
           n = @viewList.length - 1
-      else
-        n = 0
-      @goTo(n)
+        @goTo(n)
 
   goFull: () =>
     if not @animating
