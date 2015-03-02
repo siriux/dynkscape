@@ -84,6 +84,8 @@ processDefaultInkscapeMetaDescs = () ->
 
 processToggle = (e, meta) ->
 
+  $(e).css("cursor", "pointer")
+
   $el = null # The element to toggle
 
   if meta.toggle.charAt(0) != "#"

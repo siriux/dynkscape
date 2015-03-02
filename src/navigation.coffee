@@ -61,9 +61,6 @@ class Navigation
     # Make views clickable
     for v, i in @viewList
       e = v.element
-
-      Snap(e).attr(fill: "#7c8ba0", "fill-opacity": 0.5)
-
       do (i) =>
         $(e).click () =>
           @goTo(i)
