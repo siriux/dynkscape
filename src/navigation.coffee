@@ -68,7 +68,7 @@ class Navigation
 
     # Full View
     @fullView = new View()
-    @fullView.state = @viewport.state
+    @fullView.state = @viewport.state.clone()
     @fullView.duration = 1000
     @fullView.easing = "inout"
 

@@ -59,6 +59,8 @@ class Viewport
     base.center = [0,0]
     @animationObject.setBase(base)
 
+    @state.animationObject = @animationObject
+
     if @isMain
       Viewport.main = this
 

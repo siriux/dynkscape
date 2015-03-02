@@ -64,29 +64,40 @@ class State
     s.animationObject = @animationObject
     s
 
-  changeCenter: (c) =>
+  @_rotatePoint: (p, degress) ->
+    radians = degress * (Math.PI / 180)
+    sin = Math.sin(radians)
+    cos = Math.cos(radians)
+
+    x: p.x*cos - p.y*sin
+    y: p.x*sin + p.y*cos
+
+  _calcCenterChange: (c) =>
     vec =
       x: (c[0] - @center[0]) * @animationObject.width
       y: (c[1] - @center[1]) * @animationObject.height
 
-    trans = @transformPoint(vec)
+    trans = @scaleRotatePoint(vec)
 
-    @translateX = trans.x - vec.x
-    @translateY = trans.y - vec.y
+    x: trans.x - vec.x
+    y: trans.y - vec.y
+
+  changeCenter: (c) =>
+    cp = @_calcCenterChange(c)
+
+    @translateX += cp.x
+    @translateY += cp.y
 
     @center = c
 
   apply: () =>
 
     # Calculate position on current center
-    vec =
-      x: - @center[0] * @animationObject.width
-      y: - @center[1] * @animationObject.height
+    cp = @_calcCenterChange([0,0])
 
-    trans = @transformPoint(vec)
-
-    tx = trans.x - vec.x
-    ty = trans.y - vec.y
+    # Apply center
+    tx = @translateX + cp.x
+    ty = @translateY + cp.y
 
     # Apply transform
 
@@ -97,29 +108,34 @@ class State
     e.css
       opacity: @opacity
 
-  transformPoint: (p) => # Don't take into account center !!
-    rP = rotatePoint(p, @rotation)
+  transformPoint: (p) =>
+    srp = @scaleRotatePoint(p)
 
-    sX = rP.x * @scaleX
-    sY = rP.y * @scaleY
+    cp = @_calcCenterChange([0,0])
 
-    x: sX + @translateX
-    y: sY + @translateY
+    x: srp.x + @translateX + cp.x
+    y: srp.y + @translateY + cp.y
 
-  transformPointInverse: (p) => # Don't take into account center !!
-    tX = p.x - @translateX
-    tY = p.y - @translateY
+  transformPointInverse: (p) =>
+    cp = @_calcCenterChange([0,0])
 
-    sX = tX / @scaleX
-    sY = tY / @scaleY
+    t =
+      x: p.x - @translateX - cp.x
+      y: p.y - @translateY - cp.y
 
-    rotatePoint((x: sX, y: sY), -@rotation)
+    @scaleRotatePointInverse(t)
 
-  scaleRotatePointInverse: (p) => # Don't take into account center !!
+  scaleRotatePoint: (p) =>
+    rP = State._rotatePoint(p, @rotation)
+
+    x: rP.x * @scaleX
+    y: rP.y * @scaleY
+
+  scaleRotatePointInverse: (p) =>
     sX = p.x / @scaleX
     sY = p.y / @scaleY
 
-    rotatePoint((x: sX, y: sY), -@rotation)
+    State._rotatePoint((x: sX, y: sY), -@rotation)
 
   diff: (dest) =>
     # If dest center is not the right one, change it before diffing

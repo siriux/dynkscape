@@ -42,14 +42,6 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
-rotatePoint = (p, degress) ->
-  radians = degress * (Math.PI / 180)
-  sin = Math.sin(radians)
-  cos = Math.cos(radians)
-
-  x: p.x*cos - p.y*sin
-  y: p.x*sin + p.y*cos
-
 moveCoordsToMatrix = (element) ->
   e = Snap(element)
   local = e.transform().localMatrix
