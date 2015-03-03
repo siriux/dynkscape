@@ -99,9 +99,21 @@ class State
     tx = @translateX + cp.x
     ty = @translateY + cp.y
 
+    # Compensate groups
+    # This is needed if group children doesn't start at group origin
+    # In this case, ao.delta from origin to real children origin is scaled/rotated
+    # We need to compensate this effect
+    ao = @animationObject
+    if ao.compensateGroup
+      s = ao.baseState.diff(this) # State wrt base
+      p = s.scaleRotatePoint(ao.delta)
+
+      tx -= p.x - ao.delta.x
+      ty -= p.y - ao.delta.y
+
     # Apply transform
 
-    e = $(@animationObject.element)
+    e = $(ao.element)
     e.attr
       transform: "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})"
 

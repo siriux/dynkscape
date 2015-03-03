@@ -36,7 +36,7 @@ class Navigation
     Navigation.byName[@name] = this
 
     if mnav.start?
-      @goTo(mnav.start)
+      @goTo(mnav.start, true) # Go skipping animation
     else
       @_setCurrentView(null)
 
@@ -322,11 +322,11 @@ class Navigation
     s.scaleY *= scaleFactor
     s
 
-  goToView: (view, centerPage = true) =>
+  goToView: (view, skipAnimation = false, centerPage = true) =>
     dest = @_getStateForMaximizedView(view, centerPage)
     ao = @viewport.animationObject
 
-    if (view.duration == 0)
+    if (view.duration == 0 or skipAnimation)
       ao.currentState = dest
       ao.apply()
     else
@@ -368,7 +368,7 @@ class Navigation
       ba = new BaseAnimation(view.duration, advanceTime, onEnd)
       ba.play()
 
-  goTo: (dest) =>
+  goTo: (dest, skipAnimation = false) =>
     if not @animating
       if typeof dest is 'string'
         dest = @viewIndexByName[dest]
@@ -377,7 +377,7 @@ class Navigation
       v = @viewList[dest]
 
       if v?
-        @goToView(v)
+        @goToView(v, skipAnimation)
 
   goPrev: () =>
     if @viewList.length > 0
@@ -408,7 +408,7 @@ class Navigation
 
       @_setCurrentView(null)
 
-      @goToView(@fullView, false) # Don't perform page centering
+      @goToView(@fullView, false, false) # Don't skip animation, don't perform page centering
 
   viewPlay: () =>
     v = @viewList[@currentView]

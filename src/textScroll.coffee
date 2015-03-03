@@ -81,7 +81,7 @@ class TextScroll
 
     # Animation object
 
-    @animationObject = new AnimationObject(@container.node, @width, containerHeight)
+    @animationObject = new AnimationObject(@container.node, @width, containerHeight, true) # Skip compensation, just in case we change to g int he future
     @animationObject.setBase(State.fromMatrix(localMatrix(rect)))
 
     # Scroll
@@ -152,6 +152,7 @@ class TextScroll
   updateScroll: (delta) => @setScroll(@scroll + delta)
 
   goToAnchor: (name) =>
+    # TODO Animation?
     anchorScroll = @anchors[name]
     if anchorScroll?
       @setScroll(anchorScroll)
