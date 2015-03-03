@@ -102,8 +102,11 @@ class Navigation
     v = @viewList[@currentView]
     if v?.animation?
       $(@animationElements).css(opacity: 1)
+      v.animation.labelChangedCallback = @_updateCurrentLabel
+      v.animation.goStart()
     else
       $(@animationElements).css(opacity: 0.1)
+      @currentLabelElementText?.textContent = "-"
 
     if not n? or n == 0
       $(@prevSlideElement).css(opacity: 0.1)
@@ -120,6 +123,25 @@ class Navigation
     else
       $(@currentSlideElementText).css(opacity: 1)
 
+  _updateCurrentLabel: (n) =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      @currentLabelElementText?.textContent = n
+
+      if n == 0
+        $(@prevLabelElement).css(opacity: 0.1)
+        $(@animStartElement).css(opacity: 0.1)
+      else
+        $(@prevLabelElement).css(opacity: 1)
+        $(@animStartElement).css(opacity: 1)
+
+      if n == v.animation.labels.length - 1
+        $(@nextLabelElement).css(opacity: 0.1)
+        $(@animEndElement).css(opacity: 0.1)
+      else
+        $(@nextLabelElement).css(opacity: 1)
+        $(@animEndElement).css(opacity: 1)
+
   _initNavigationControl: () ->
 
     @activeCueElement = $(@control).find(".activeCue")[0]
@@ -130,17 +152,18 @@ class Navigation
     @nextSlideElement = $(@control).find(".nextSlide")[0]
     @playElement = $(@control).find(".play")[0]
     @pauseElement = $(@control).find(".pause").hide()[0]
-    @playNextElement = $(@control).find(".playNext")[0]
-    @replayCurrentElement = $(@control).find(".replayCurrent")[0]
+    @playLabelElement = $(@control).find(".playLabel")[0]
+    @animStartElement = $(@control).find(".animStart")[0]
     @prevLabelElement = $(@control).find(".prevLabel")[0]
     @currentLabelElement = $(@control).find(".currentLabel")[0]
     @currentLabelElementText = $(@currentLabelElement).find("tspan")[0]
     @nextLabelElement = $(@control).find(".nextLabel")[0]
+    @animEndElement = $(@control).find(".animEnd")[0]
     @lockElement = $(@control).find(".lock")[0]
     @showViewsElement = $(@control).find(".showViews")[0]
     @fullViewElement = $(@control).find(".fullView")[0]
 
-    @animationElements = [@playElement,@pauseElement,@playNextElement,@replayCurrentElement,@prevLabelElement,@currentLabelElement,@nextLabelElement]
+    @animationElements = [@playElement,@pauseElement,@playLabelElement,@animStartElement,@prevLabelElement,@currentLabelElement,@nextLabelElement,@animEndElement]
 
     $(@control).click () =>
       Navigation.active._setActive(false)
@@ -152,10 +175,11 @@ class Navigation
 
     $(@playElement).click () => @viewPlay()
     $(@pauseElement).click () => @viewPause()
-    $(@playNextElement).click () => @viewPlayNext()
-    $(@replayCurrentElement).click () => @viewReplayCurrent()
+    $(@playLabelElement).click () => @viewPlayLabel()
+    $(@animStartElement).click () => @viewAnimStart()
     $(@prevLabelElement).click () => @viewPrevLabel()
     $(@nextLabelElement).click () => @viewNextLabel()
+    $(@animEndElement).click () => @viewAnimEnd()
 
     $(@lockElement).click () => @_setLock(not @lock)
     $(@showViewsElement).click () => @_setShowViews(not @showViews)
@@ -391,7 +415,7 @@ class Navigation
     if v?.animation?
       $(@pauseElement).show()
       $(@playElement).hide()
-      v.animation.play null, () =>
+      v.animation.play () =>
         $(@pauseElement).hide()
         $(@playElement).show()
 
@@ -403,10 +427,28 @@ class Navigation
       $(@playElement).show()
       v.animation.pause()
 
-  viewPlayNext: () =>
+  viewPlayLabel: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      @viewPause()
+      v.animation.playLabel()
 
-  viewReplayCurrent: () =>
+  viewAnimStart: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      v.animation.goStart()
+
+  viewAnimEnd: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      v.animation.goEnd()
 
   viewPrevLabel: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      v.animation.prevLabel()
 
   viewNextLabel: () =>
+    v = @viewList[@currentView]
+    if v?.animation?
+      v.animation.nextLabel()

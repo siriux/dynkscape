@@ -14,12 +14,10 @@ init = () ->
 
 
 run = () ->
-  #v = Navigation.main.viewsByName["MainSlide0"]
-  #v?.play()
 
   jSvg.keydown (e) ->
     if e.keyCode == 48
-      Navigation.active.goTo(0)
+      TextScroll.byName["someText"].goToAnchor("sec1")
 
     if e.keyCode == 39
       Navigation.active.goNext()

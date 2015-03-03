@@ -111,19 +111,27 @@ class State
   transformPoint: (p) =>
     srp = @scaleRotatePoint(p)
 
-    cp = @_calcCenterChange([0,0])
+    px = srp.x + @translateX
+    py = srp.y + @translateY
 
-    x: srp.x + @translateX + cp.x
-    y: srp.y + @translateY + cp.y
+    if @center[0] != 0 or @center[1] != 0
+      cp = @_calcCenterChange([0,0])
+      px += cp.x
+      py += cp.y
+
+    x:  px
+    y:  py
 
   transformPointInverse: (p) =>
-    cp = @_calcCenterChange([0,0])
+    px = p.x - @translateX
+    py = p.y - @translateY
 
-    t =
-      x: p.x - @translateX - cp.x
-      y: p.y - @translateY - cp.y
+    if @center[0] != 0 or @center[1] != 0
+      cp = @_calcCenterChange([0,0])
+      px -= cp.x
+      py -= cp.y
 
-    @scaleRotatePointInverse(t)
+    @scaleRotatePointInverse(x: px, y: py)
 
   scaleRotatePoint: (p) =>
     rP = State._rotatePoint(p, @rotation)

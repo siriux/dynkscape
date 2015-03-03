@@ -197,6 +197,8 @@ class Animation
     @actions.sort(compareActions)
 
     @labels.sort((a, b) => a.time - b.time)
+    @labels.unshift(name: "start", time: 0) # Add start label
+    @labels.push(name: "end", time: @duration) # Add end label
 
     # De-duplicate
     l = @actions.length
@@ -236,40 +238,70 @@ class Animation
       else
         delete @objects[k]
 
-  resetObjects: () => o.reset() for k, o of @objects
+    @goStart()
 
   _play: (length, onEnd) =>
-    if not @currentBaseAnimation?
-      @resetObjects()
-
-      @currentTime = 0
-      @currentActions = []
-      @nextAction = 0
-
-      @currentBaseAnimation = new BaseAnimation length, @advanceTime, () =>
-        @currentBaseAnimation = null
-        onEnd()
-
+    @currentBaseAnimation = new BaseAnimation length, @advanceTime, () =>
+      @currentBaseAnimation = null
+      onEnd?()
     @currentBaseAnimation.play()
 
-  play: (dest, onEnd) =>
-    if dest?
-      if typeof dest is 'string'
-        l = @labelByName[dest]
+  _changeCurrentLabel: (newLabel) =>
+    @currentLabel = newLabel
+    if @labelChangedCallback?
+      @labelChangedCallback(@currentLabel)
 
-      if typeof dest is 'number'
-        l = @labels[dest]
+  play: (onEnd) =>
+    if @currentTime >= @duration
+      @goStart()
 
-      if l?
-        @_play(l.time, onEnd)
-    else
-      @_play(@duration, onEnd)
+    @_play(@duration - @currentTime, onEnd)
+
+  playLabel: () =>
+    end = @labels[@currentLabel + 1]?.time
+    if not end?
+      end = @duration
+
+    cLabel = @currentLabel
+    @goStart()
+    @advanceTime(@labels[cLabel].time)
+
+    @_play(end - @currentTime)
 
   pause: () =>
     @currentBaseAnimation?.pause()
 
+  goStart: () =>
+    o.reset() for k, o of @objects
+
+    @currentTime = 0
+    @currentActions = []
+    @nextAction = 0
+    @_changeCurrentLabel(0)
+
+    @currentBaseAnimation = null
+
+    @advanceTime(0)
+
+  goEnd: () =>
+    @goStart()
+    @advanceTime(@duration)
+
+  nextLabel: () =>
+    if @currentLabel < @labels.length - 1
+      @advanceTime(@labels[@currentLabel + 1].time - @currentTime)
+
+  prevLabel: () =>
+    if @currentLabel > 0
+      prevLabel = @currentLabel - 1
+      @goStart()
+      @advanceTime(@labels[prevLabel].time)
+
   advanceTime: (delta) =>
     @currentTime += delta
+
+    while @currentLabel < @labels.length - 1 and @labels[@currentLabel + 1].time <= @currentTime
+      @_changeCurrentLabel(@currentLabel + 1)
 
     changed = new Set()
 
