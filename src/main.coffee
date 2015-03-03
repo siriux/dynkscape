@@ -7,8 +7,6 @@ init = () ->
   updateWindowDimensions()
   initInkscape()
 
-  $("flowRoot").each (idx, root) -> flowToScroll(root)
-
   # Init main navigation !
   new Navigation(jSvg[0])
 

@@ -82,6 +82,9 @@ processDefaultInkscapeMetaDescs = () ->
     if meta.navigation?
       processNavigation(e, meta)
 
+    if meta.textScroll?
+      processTextScroll(e, meta)
+
 processToggle = (e, meta) ->
 
   $(e).css("cursor", "pointer")
@@ -137,3 +140,7 @@ processNavigation = (e, meta) ->
     if (meta.navigation.layer? and meta.navigation.layer != "")
       new Navigation(e, meta)
   setTimeout initNavigation, 0 # Delay the init until all the meta is processed
+
+processTextScroll = (e, meta) ->
+  flowRoot = $(e).find("flowRoot")[0]
+  new TextScroll(flowRoot, meta)
