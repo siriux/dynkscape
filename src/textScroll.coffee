@@ -1,8 +1,14 @@
 class TextScroll
 
-  constructor: (flowRoot, meta) ->
+  @byName: {}
+
+  constructor: (e, meta) ->
+    flowRoot = $(e).find("flowRoot")[0]
 
     @scroll = 0
+
+    @name = if meta.textScroll.name? then meta.textScroll.name else Snap(e).attr("id")
+    TextScroll.byName[@name] = this
 
     # Viewport
 
@@ -37,6 +43,8 @@ class TextScroll
 
     @viewport.append(@container)
 
+    # TODO Add visual hints to scroll (shadows at the top/bottom?)
+
     # Text Content
 
     rawText = $.makeArray($(flowRoot).find("flowPara"))
@@ -45,28 +53,28 @@ class TextScroll
 
     rederedText =
       if meta.textScroll.process == "markdown"
-        tree = markdown.parse(rawText)
-
         # TODO Process links if needed
-
-        markdown.renderJsonML(markdown.toHTMLTree(tree))
+        marked(rawText)
       else
         rawText
 
     @textContent = $(htmlElement("div"))
 
     align = if meta.textScroll.align? then meta.textScroll.align else "justify"
+    padding = if meta.textScroll.padding? then meta.textScroll.padding else 20
 
     @textContent
-      .width(@width) # Set the width, so that paragraphs can expand
-      .css("text-align", align)
+      .css
+        width: @width - padding*2 # Set the width, so that paragraphs can expand
+        padding: "#{padding}px"
+        "text-align": align
       .html(rederedText)
 
     @container.append(@textContent[0])
 
     # Set the real size of the @container to it's content size
 
-    containerHeight = @textContent.height()
+    containerHeight = @textContent.height() + padding*2
     @container.attr(height: containerHeight)
 
     @maxScroll = Math.max(0, containerHeight - @height)
@@ -115,6 +123,17 @@ class TextScroll
         dragging = false
         false
 
+    # Process Anchors
+    @anchors = {}
+
+    @textContent.css(position: "relative") # Needed to get the right offsetTop
+
+    @textContent.find("a[name]").each (idx, anchor) =>
+      name = $(anchor).attr("name")
+      @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
+
+    @textContent.css(position: "static") # Revert to default
+
   setScroll: (s) =>
     if s < 0
       @scroll = 0
@@ -131,3 +150,8 @@ class TextScroll
     @animationObject.apply()
 
   updateScroll: (delta) => @setScroll(@scroll + delta)
+
+  goToAnchor: (name) =>
+    anchorScroll = @anchors[name]
+    if anchorScroll?
+      @setScroll(anchorScroll)

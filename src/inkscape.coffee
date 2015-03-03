@@ -142,5 +142,4 @@ processNavigation = (e, meta) ->
   setTimeout initNavigation, 0 # Delay the init until all the meta is processed
 
 processTextScroll = (e, meta) ->
-  flowRoot = $(e).find("flowRoot")[0]
-  new TextScroll(flowRoot, meta)
+  new TextScroll(e, meta)
