@@ -1,228 +1,98 @@
-# Animation #
+# Entities
 
-## Entries ##
+- Animation Objects
+  - Can have element, name, class, dimensions, state
+  - Can act as a view for a navigation
+  - Classes: TextScroll, Path, Clip, Slide, Navigation
+  - Attributes
+    - namespace
+    - name
+    - class
+    - text: align, process
+    - clip: clipName
+    - slide: num, duration, easing
+    - navigation: layer, start, showViews, lock
+    - animations:
+      vars: ... ; To define a base variables for all the animations
+      @init ....: ... ; Special, on init animate itself or others
+      @click ...: ... ; Special, on click animate itself or others
+      @slide ...: ... ; Special, slide animation
+      ...
+      @animationName ...: ...; Other animations
+      ...
 
-A single entry or a set of entries that define a transition in the timeline.
-Some information can be described in many ways, with precedence rules.
+# Animations
 
-Note: If there is a single value, the array is not needed
+Animations are composed of three types steps, that can be nested. Each step has
+a left side, that defines the step type and context, and a right side that defines
+it's parameters and/or context, or the child steps. Both sides are separated by a :
 
-### General
+On the left size first we have an optional step type. The main step is defined
+by @animationName, and defines a new animation with it's name. Then, we can have
+sequential, or parallel steps, defined by - and / respectively. In some situations
+the type definition can be omitted, and is assumed parallel.
 
-```
+All the child steps of the same step must be of the same type, sequential or parallel.
 
-target: objectID        # The objectID is like in css: "#someId"
-start: time             # Global start of the action in ms
-offset: time            # Offset over current time. Alternative to start.
-duration: time          # Duration of the action in ms
-easing: functionName    # easing function
+After the type, separated by a space, we can optionally have a action name.
+If an action name is provided, the right side will contain a single line with
+action and/or context variables. Otherwise, the right is composed of child steps, which
+are in the next line, and indented one more level than the parent.
 
-```
+After the optional action name, on the left side can appear multiple variables
+separated by spaces. A variable is specified by the variable name or short name,
+the = symbol, and a value (without any space). The context variables have an order,
+if they are specified in the right order, the name and = symbol can be omitted, but once a name
+is provided, it must be provided for all the following variables.
 
-### Properties
+The ordered context variable names (with short name in parenthesis) are:
+target(t), duration(d), easing(e), offset(o), center(c), namespace(n), label(l).
 
-Target, duration and easing are optional
+Any variable can be used by the actions. They take the closest defined value for
+the variable, if provided, or a default value. Defaults can be different for each action.
 
-```
+For action steps, on the right side appear a set of variables with the same format
+as described before. This variables can be action specific or context. As before,
+they have a name and optionally a short name. The action variables have an order,
+and are before the context ones.
 
-translate: [target, x, y, duration, easing]             # x, y relative.
-scale: [target, [sX, sY], duration, easing, center]     # sX, sY relative.
-                                                        # A single number can be given for [sX, sY].
-                                                        # TODO Define center. Corners?
-rotate: [target, r, duration, easing, center]           # r relative.
-                                                        # TODO Define center. Corners?
+It's importante to note that for indentation, the number of spaces counts. But for the
+other spaces, multiple spaces are treated as a single one.
 
-transform: [target, [x, y], [sX,sY], r, duration, easing]   # All optional
-                                                            # Less precedence than translate, scale, rotate
+The variables can appear in the place of a value. They start with $, followed by
+the variable name. For example: $myVar. TODO Expressions can be placed inside ${ exp }
 
-path: [target, pathID, duration, easing]  # Everything relative.
-                                          # The path, can contain scale and rotate information.
-                                          # Less precedence than translate, scale, rotate
+As a style guide:
 
-opacity: [target, opacity, duration, easing] # Absolute. Duration and easing are optional.
+Indentation should be one space per level, and variables can be optionally aligned using spaces.
 
-text: [target, text, duration, effect]  # Set the text. Effect: typewriter, ...
+All context variables are used with the short name, except the target that is used
+without any name (because it's easy to identify visually).
 
-```
+Also, on action steps, if needed, the target is specified on the left side, and
+the other context variables on the right side, after the action variables.
 
-### Effects
+Action specific variable names, should not be used as general variables. In this case
+is better to define a new variable name, and provide it explicitly on each action.
 
-```
+## Examples
 
-attention: [target, type, duration]   # All optional. Type: Bounce, shake, scale...
-
-hide/show: [target, type, duration]   # All optional. Type: Fade, scale, slide ...
-
-click: [target, pathID, duration]     # Move along path and scale effect
-
-```
-
-### Context
-
-There are two types of context, the time context, that provides a default value for start.
-And the target context, that provides a default value for the target.
-
-#### Time
-
-In a timeline, things can happen in sequence or in parallel.
-
-Things in sequence, are preceded by "-", this is called a line. Otherwise is in parallel.
-At an indentation level, you cannot mix sequence and parallel.
-
-The things that happen in parallel at one indentation level are restricted to different entries.
-If you need to use the same entry multiple times, group them by target.
-
-When something is in sequence, the default time is advanced after each line.
-The time is advanced depending on the line. If it's a single entry, is the duration.
-If it's something in parallel (multiple entries, or something else), the longest duration is taken.
-
-
-
-```
-timeline: # Base of animation, sets time to 0
-  - entry    # Time advances entry's duration
-  - entry
-
-  - 2000     # Just advances time 2000ms
-
-  - entry
-
-  - entry    Multiple entries in paralel, same default time for all
-    entry
-    entry
-```
-
-#### Target
-
-A target context just defines the default target for everything under it.
-The contents can be parallel or sequential, but they cannot be mixed, as before.
-
-Here is one example of each
+Animation with multiple sequential steps. Scale, then rotate.
 
 ```
-"#someID":          # Everything under it has "#someID" as it's default target
-  entry
-  entry
-
+@slide #objectName:
+ - scale:  2   d=1.5 e=inout
+ - rotate: -45 d=2   e=linear
 ```
 
-```
-"#someID":          # Everything under it has "#someID" as it's default target
-  - entry
-  - entry
+Parallel animation on multiple targets, sequential on each target.
 
 ```
-
-Also, targets can appear in parallel or sequential contexts.
-
-```
-timeline:
-  "#A":
-    ...
-  "#B":
-    ...
-```
-
-```
-timeline:
-  - "#A":
-    ...
-  - "#B":
-    ...
-```
-
-### Other
-
-```
-
-label: [name, start] # Start is optional
-
-```
-
-## Examples ##
-
-Simple transform: First move #A during 1s, then scale #B during 2s easing out.
-
-```
-timeline:
-  - translate: ["#A", 10, 20, 1000]
-  - scale: ["#B", 2, 1000]
-```
-
-Multiple parallel transforms on a target #A.
-Two ways of expressing the same.
-
-```
-timeline:
-  "#A":
-    translate: [10, 20, 1000, "bounceOut"]
-    scale: [2, 1000, "bounceOut"]
-
-timeline:
-  target: "#A"
-  duration: 1000
-  easing: "bounceOut"
-  translate: [10, 20]
-  scale: 2
-```
-
-Multiple parallel transforms on #A, then on #B
-
-```
-timeline:
-  - "#A":
-    translate: [10, 20, 1000]
-    scale: [2, 1000]
-  - "#B":
-    translate: [10, 20, 1000]
-    scale: [2, 1000]
-```
-
-Multiple sequence of transforms on #A, then on #B
-
-```
-timeline:
-  - "#A":
-    - translate: [10, 20, 1000]
-    - scale: [2, 1000]
-  - "#B":
-    - translate: [10, 20, 1000]
-    - scale: [2, 1000]
-```
-
-The same, but parallel on #A and #B
-
-```
-timeline:
-  "#A":
-    - translate: [10, 20, 1000]
-    - scale: [2, 1000]
-  "#B":
-    - translate: [10, 20, 1000]
-    - scale: [2, 1000]
-```
-
-Like before, but transforms on each element are in parallel
-
-```
-timeline:
-  "#A":
-    translate: [10, 20, 1000]
-    scale: [2, 1000]
-  "#B":
-    translate: [10, 20, 1000]
-    scale: [2, 1000]
-```
-
-Like before, but #B starts 500ms later (also in parallel)
-
-```
-timeline:
-  "#A":
-    translate: [10, 20, 1000]
-    scale: [2, 1000]
-  "#B":
-    500:
-      translate: [10, 20, 1000]
-      scale: [2, 1000]
+@myanim e=springout:
+ / #objectA:
+  - scale:  2  d=1.5
+  - rotate: 30 d=3
+ / #objectB o=300:
+  - scale:  2  d=7 e=linear
+  - rotate: 30 d=2.3
 ```

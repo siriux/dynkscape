@@ -269,7 +269,7 @@ class Navigation
 
           false # Avoid zooming on windows if ctrl is pressed
 
-  _getStateForMaximizedView: (view, centerPage = true) =>
+  getStateForMaximizedView: (view, centerPage = true) =>
     s = view.state.diff(@viewport.state)
     s.animationObject = @viewport.animationObject
 
@@ -323,7 +323,7 @@ class Navigation
     s
 
   goToView: (view, skipAnimation = false, centerPage = true) =>
-    dest = @_getStateForMaximizedView(view, centerPage)
+    dest = @getStateForMaximizedView(view, centerPage)
     ao = @viewport.animationObject
 
     if (view.duration == 0 or skipAnimation)
