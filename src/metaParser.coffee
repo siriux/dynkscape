@@ -131,5 +131,5 @@ metaOut = MetaParser.parse """
 
 animOut = MetaParser.parseAnimation "scale #foo: 2 3; rotate #bar: 25 d=37"
 
-#console.log JSON.stringify(metaOut, null, 2)
-console.log JSON.stringify(animOut, null, 2)
+console.log JSON.stringify(metaOut, null, 2)
+#console.log JSON.stringify(animOut, null, 2)

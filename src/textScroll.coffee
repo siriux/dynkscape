@@ -1,13 +1,15 @@
-class TextScroll
+class TextScroll extends AnimationObject
 
   @byName: {}
 
-  constructor: (e, meta) ->
-    flowRoot = $(e).find("flowRoot")[0]
+  constructor: (element, meta) ->
+    super(element)
+
+    flowRoot = $(@element).find("flowRoot")[0]
 
     @scroll = 0
 
-    @name = if meta.textScroll.name? then meta.textScroll.name else Snap(e).attr("id")
+    @name = if meta.textScroll.name? then meta.textScroll.name else Snap(@element).attr("id")
     TextScroll.byName[@name] = this
 
     # Viewport
@@ -16,10 +18,10 @@ class TextScroll
 
     rect = Snap(flowRoot).select("flowRegion > rect")
 
-    @x = rect.attr("x")
-    @y = rect.attr("y")
-    @width = rect.attr("width")
-    @height = rect.attr("height")
+    @_viewportX = rect.attr("x")
+    @_viewportY = rect.attr("y")
+    @_viewportWidth = rect.attr("width")
+    @_viewportHeight = rect.attr("height")
 
     rect.attr(transform: $(flowRoot).attr("transform"))
     moveCoordsToMatrix(rect.node)
@@ -38,8 +40,8 @@ class TextScroll
     @container = Snap(svgElement("foreignObject"))
 
     @container.attr
-      width: @width
-      height: @height # Provide temporal height to allow real calculations inside
+      width: @_viewportWidth
+      height: @_viewportHeight # Provide temporal height to allow real calculations inside
 
     @viewport.append(@container)
 
@@ -65,7 +67,7 @@ class TextScroll
 
     @textContent
       .css
-        width: @width - padding*2 # Set the width, so that paragraphs can expand
+        width: @_viewportWidth - padding*2 # Set the width, so that paragraphs can expand
         padding: "#{padding}px"
         "text-align": align
       .html(rederedText)
@@ -77,11 +79,10 @@ class TextScroll
     containerHeight = @textContent.height() + padding*2
     @container.attr(height: containerHeight)
 
-    @maxScroll = Math.max(0, containerHeight - @height)
+    @maxScroll = Math.max(0, containerHeight - @_viewportHeight)
 
-    # Animation object
-
-    @animationObject = new AnimationObject(@container.node, @width, containerHeight, true) # Skip compensation, just in case we change to g int he future
+    # Raw, it's internal object
+    @animationObject = new AnimationObject(@container.node, @_viewportWidth, containerHeight, true)
     @animationObject.setBase(State.fromMatrix(localMatrix(rect)))
 
     # Scroll
@@ -147,7 +148,7 @@ class TextScroll
     state.translateY -= @scroll
 
     @animationObject.currentState = state
-    @animationObject.apply()
+    @animationObject.applyCurrent()
 
   updateScroll: (delta) => @setScroll(@scroll + delta)
 

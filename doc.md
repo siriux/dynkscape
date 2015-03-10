@@ -1,25 +1,26 @@
 # Entities
 
+``
 - Animation Objects
-  - Can have element, name, class, dimensions, state
   - Can act as a view for a navigation
-  - Classes: TextScroll, Path, Clip, Slide, Navigation
   - Attributes
     - namespace
     - name
-    - class
+    - class // Special classes TextScroll, Path, Slide, Navigation
     - text: align, process
     - clip: clipName
     - slide: num, duration, easing
     - navigation: layer, start, showViews, lock
+    - vars: // To define user variables
+      $var1: ...
     - animations:
-      vars: ... ; To define a base variables for all the animations
-      @init ....: ... ; Special, on init animate itself or others
-      @click ...: ... ; Special, on click animate itself or others
-      @slide ...: ... ; Special, slide animation
+      @init ....: ... // Special, on init animate itself or others
+      @click ...: ... // Special, on click animate itself or others
+      @slide ...: ... // Special, slide animation
       ...
-      @animationName ...: ...; Other animations
+      @animationName ...: ... // Other animations
       ...
+``
 
 # Animations
 
@@ -45,8 +46,8 @@ the = symbol, and a value (without any space). The context variables have an ord
 if they are specified in the right order, the name and = symbol can be omitted, but once a name
 is provided, it must be provided for all the following variables.
 
-The ordered context variable names (with short name in parenthesis) are:
-target(t), duration(d), easing(e), offset(o), center(c), namespace(n), label(l).
+The ordered context variable names (with short name in parenthesis if available) are:
+target, duration(d), easing(e), offset(o), center(c), namespace(n), label(l).
 
 Any variable can be used by the actions. They take the closest defined value for
 the variable, if provided, or a default value. Defaults can be different for each action.
@@ -92,7 +93,85 @@ Parallel animation on multiple targets, sequential on each target.
  / #objectA:
   - scale:  2  d=1.5
   - rotate: 30 d=3
- / #objectB o=300:
+ / #objectB o=0.3:
   - scale:  2  d=7 e=linear
   - rotate: 30 d=2.3
 ```
+
+## Actions
+
+*Internal*
+
+These actions are controlled by the animation. Have a duration, and can have
+intermediate steps.
+
+transform: target translate/translateX/translateY/t/tx/ty
+                  scale/scaleX/scaleY/s/sx/sy
+                  rotate/r
+                  path # Path can contain a path and scale/rotate objects
+
+style: target opacity/fill/stroke/font ...
+
+dimensions: target width/height/radius[X,Y] ...
+
+attention: target effect
+
+hide / show: target effect
+
+text: target text effect
+
+includeAnim: target startAt duration # Time is recalculated, other context is kept
+                                     # startAt and duration to take only a part of it
+
+animView: target orig dest # Valid for slides too !
+animScrollText: target orig dest
+
+*External*
+
+These actions are just triggered by the animation, but they don't have a duration
+inside this animation. Any jump in the animation (except while playing) might not
+trigger the external actions. Therefore this information has to be available to the action
+to decide. Include var to configure it?
+
+play: target repeat=[n, loop] anim=[true, false] # Duration can be set
+playTo: target end=[label, time, +n] anim=[true, false] # +2 means play next two labels
+                                                        # Without animation, it can be used to go to a point
+                                                        # loop???
+                                                        # target can be navigation, then is current slide animation
+pause: target
+
+goView: target view=[name, +/-n] # +1 means next slide. Full view??
+                                 # Can set duration and easing to animate
+
+scrollText: target dest=[anchorName, %, +/-n] # +1 means next anchor from current position
+                                              # Can set duration and easing to animate
+
+## Naming
+
+Some things in the system can have a name: Animation Objects, Animations, Variables.
+
+Names can have a namespace to disambiguate them. It's full name it's the namespace
+, then a '.', the it's name.
+
+Animation objects, animations and variables namespaces are independent. Therefore,
+full names of different types can be repeated, but they must be unique in a type.
+
+The special namespace "__auto__" means that it will look for the first parent that is an
+Animation Object, and it will use it's full name as namespace. They are useful when
+you need to create groups that are copy/pasted but have internal references.
+
+To reference a name, you must start with '#' for animation objects, '@' for animations and
+'$' for variables. Then, provide a full or relative name.
+
+To resolve a name, first, it tries to find the name in the local context (for variables in animations).
+Then, if not found, it tries to find the name in the global space prepending the
+current namespace and '.' to the name provided. If that fails, it tries the raw name in the
+global space. TODO Add something like #/ to force global.
+
+When defining vars in Meta, they use as namespace the current full name.
+The same happens with the animations.
+
+So, to reference an animation or a variable from the same Meta use '@name' or '$name'. To reference
+the animation object itself, just use '#'.
+
+If you want to reference outside things use "#name.space.name", "@name.space.name" or "$name.space.name"

@@ -12,8 +12,6 @@ class State
     @center = [0.5, 0.5] # By default, center on the object
     @animationObject = null
 
-    # TODO origin for scale, and another one for rotation
-
   @fromMatrix: (matrix) ->
     # From http://svg.dabbles.info/snaptut-matrix-play
 
@@ -59,9 +57,11 @@ class State
     s.scaleX = @scaleX
     s.scaleY = @scaleY
     s.rotation = @rotation
-    s.opacity = @opacity
-    s.center = [@center[0], @center[1]]
+    s.center = @center
     s.animationObject = @animationObject
+
+    # TODO Clone any extra property
+    s.opacity = @opacity
     s
 
   @_rotatePoint: (p, degress) ->
@@ -104,20 +104,20 @@ class State
     # In this case, ao.delta from origin to real children origin is scaled/rotated
     # We need to compensate this effect
     ao = @animationObject
-    if ao.compensateGroup
+    if ao.compensateDelta?
+      delta = ao.compensateDelta
       s = ao.baseState.diff(this) # State wrt base
-      p = s.scaleRotatePoint(ao.delta)
+      p = s.scaleRotatePoint(delta)
 
-      tx -= p.x - ao.delta.x
-      ty -= p.y - ao.delta.y
+      tx -= p.x - delta.x
+      ty -= p.y - delta.y
 
     # Apply transform
 
-    e = $(ao.element)
-    e.attr
+    $(ao.element).attr
       transform: "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})"
 
-    e.css
+    $(ao.origElement).css
       opacity: @opacity
 
   transformPoint: (p) =>

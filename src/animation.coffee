@@ -219,19 +219,7 @@ class Animation
     for k, v of @objects
       o = $(k)
       if o.length == 1
-        e = o[0]
-
-        # Get dimensions
-        so = Snap(e)
-        w = parseFloat(so.attr("width"))
-        h = parseFloat(so.attr("height"))
-        if isNaN(w) or isNaN(h)
-          box = so.getBBox()
-          w = box.w
-          h = box.h
-
-        ao = new AnimationObject(e, w, h)
-
+        ao = new AnimationObject(o[0])
         ao.setBase(State.fromAnimationObject(ao))
 
         @objects[k] = ao
@@ -272,7 +260,7 @@ class Animation
     @currentBaseAnimation?.pause()
 
   goStart: () =>
-    o.reset() for k, o of @objects
+    o.resetState() for k, o of @objects
 
     @currentTime = 0
     @currentActions = []
@@ -328,4 +316,4 @@ class Animation
         true
 
     # Apply the provisional state to the element
-    changed.forEach (o) -> o.applyProvisional()
+    changed.forEach (ao) -> ao.applyProvisional()

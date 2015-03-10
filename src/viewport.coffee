@@ -54,7 +54,7 @@ class Viewport
     @container = Snap(@element).g().node
     $(@container).append(contents)
 
-    @animationObject = new AnimationObject(@container, svgPageWidth, svgPageHeight, true) # Avoid applying compensation
+    @animationObject = new AnimationObject(@container, svgPageWidth, svgPageHeight, true) # Raw, no clipping or compensation
     base = new State()
     base.center = [0,0]
     @animationObject.setBase(base)
