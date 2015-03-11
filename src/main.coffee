@@ -7,17 +7,13 @@ init = () ->
   updateWindowDimensions()
   initInkscape()
 
-  # Init main navigation !
-  new Navigation(jSvg[0])
-
   setTimeout run, 0
-
 
 run = () ->
 
   jSvg.keydown (e) ->
-    if e.keyCode == 48
-      TextScroll.byName["someText"].goToAnchor("sec1")
+    #if e.keyCode == 48
+    #  TextScroll.byName["someText"].goToAnchor("sec1")
 
     if e.keyCode == 39
       Navigation.active.goNext()

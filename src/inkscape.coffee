@@ -1,30 +1,8 @@
-inkscapeLayersByName = {}
-mainLayer = null
-
-class Layer
-  constructor: (@name, @element, @children) ->
-    @parent = null
-    @slidesLayer = null
-    @animationLayer = null
-
-    # Find the Slides and Animation layers
-    for l in @children
-      if l.name.match(/^Slides.*/i)
-        @slidesLayer = l
-
-      if l.name.match(/^Animation.*/i)
-        @animationLayer = l
-
-    @animationLayer?.hide() # Animation layers are hidden by default
-
-  show: () => $(@element).show()
-
-  hide: () => $(@element).hide()
 
 initInkscape = () ->
+  setBackgroundColor()
   initInkscapeLayers()
   processDefaultInkscapeMetaDescs()
-  setBackgroundColor()
 
 setBackgroundColor = () ->
   background = Snap("svg namedview").attr("pagecolor")
@@ -34,27 +12,18 @@ setBackgroundColor = () ->
 
 initInkscapeLayers = () ->
 
-  inkscapeLayersRecursive = (root) ->
+  inkscapeLayersRecursive = (root, namespace) ->
     layers = root
       .children("g")
       .filter (idx, g) -> g.getAttribute("inkscape:groupmode") == "layer"
       .map (idx, l) ->
         name = l.getAttribute("inkscape:label")
-        children = inkscapeLayersRecursive($(l))
-
-        layer = new Layer(name, l, children)
-
-        # Link to children
-        c.parent = layer for c in children
-
-        # Add layer by name
-        inkscapeLayersByName[name] = layer
-
-        layer
+        children = inkscapeLayersRecursive($(l), namespace + "." + name)
+        new Layer(l, namespace, name, children)
     $.makeArray(layers)
 
-  baseLayers = inkscapeLayersRecursive($("svg").first())
-  mainLayer = new Layer("", sSvg.node, baseLayers)
+  baseLayers = inkscapeLayersRecursive($("svg").first(), "layers")
+  Layer.main = new Layer(sSvg.node, "layers", "__main__", baseLayers)
 
 processInkscapeMetaDescs = (base, callback) ->
   $(base).find("desc").each (idx, d) ->
@@ -69,77 +38,34 @@ processInkscapeMetaDescs = (base, callback) ->
       callback(parent, doc)
 
 processDefaultInkscapeMetaDescs = () ->
+  # Get metas and add classes
+  metas = []
   processInkscapeMetaDescs document, (e, meta) ->
-    if meta.toggle?
-      processToggle(e, meta)
-
     if meta.class?
       Snap(e).addClass(meta.class)
-
-    if meta.hasOwnProperty('hidden') && meta.hidden != false
-      $(e).hide()
-
-    if meta.navigation?
-      processNavigation(e, meta)
-
-    if meta.textScroll?
-      processTextScroll(e, meta)
-
-processToggle = (e, meta) ->
-
-  $(e).css("cursor", "pointer")
-
-  $el = null # The element to toggle
-
-  if meta.toggle.charAt(0) != "#"
-    # Treat as a layer name
-    l = inkscapeLayersByName[meta.toggle]
-    $el = $(l.element)
-  else
-    # Treat as an object ID
-    $el = $(meta.toggle)
-
-  return if $el.length != 1 # Element not found, ignore
-
-  cues = null
-
-  hide = () ->
-    $el.hide()
-    for c in cues
-      c.animate(transform: "r0 t0,0", 100, mina.easein)
-
-  show = () ->
-    $el.show()
-    for c in cues
-      c.animate(transform: "r45 t0,0", 100, mina.easein)
-
-  initToggle = () ->
-    cues = for c in Snap(e).selectAll(".toggleCue")
-      # Wrap a group around contents, this group can be easily transformed
-      g = sSvg.g()
-      $(g.node).append($(c.node).contents())
-      c.add(g)
-      g
-
-    if meta.toggleStartHidden == true
-      hide()
+      classes = meta.class.split(" ")
     else
-      show()
+      classes = []
 
-  setTimeout initToggle, 0 # Delay the init until all the meta is processed
+    metas.push([e, meta, classes])
 
-  $(e).click () ->
-    if $el.css("display") != "inline" # Hidden element
-      show()
+  # Create the AnimationObjects
+  objects = []
+  for [e, meta, classes] in metas
+    if "Navigation" in classes
+      o = new Navigation(e, meta)
+
+    else if "Slide" in classes
+      o = new Slide(e, meta)
+
+    else if "TextScroll" in classes
+      o = new TextScroll(e, meta)
+
     else
-      hide()
+      o = new AnimationObject(e, meta)
 
-processNavigation = (e, meta) ->
-  initNavigation = () ->
-    # Main is handled in a separate way
-    if (meta.navigation.layer? and meta.navigation.layer != "")
-      new Navigation(e, meta)
-  setTimeout initNavigation, 0 # Delay the init until all the meta is processed
+    objects.push(o)
 
-processTextScroll = (e, meta) ->
-  new TextScroll(e, meta)
+  # Init all AnimationObjects
+  for ao in objects
+    ao.init()

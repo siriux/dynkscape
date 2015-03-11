@@ -68,7 +68,7 @@ registerEffect
   name: "translateOnId"
   init: (action) ->
     p = action.pathId.split('$')
-    sp = Snap(p[0])
+    sp = Snap(AnimationObject.byFullName[action.context.namespace + "." + p[0][1..]].element)
     path =
      if sp.hasClass("translatePath")
        sp

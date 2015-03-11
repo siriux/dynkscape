@@ -1,15 +1,18 @@
 class Animation
 
-  constructor: (timeline) ->
+  constructor: (timeline, namespace) ->
 
     @actions = []
-    @objects = {}
+    @objects = new Set()
     @labels = []
     @labelByName = {}
     @duration = 0
     @currentTime = 0
     @currentActions = []
     @nextAction = 0
+
+    getTarget = (id) =>
+      AnimationObject.byFullName[namespace + "." + id[1..]]
 
     process = (o, ctx) =>
       if o instanceof Array
@@ -30,7 +33,7 @@ class Animation
         ctx.time = o.start
 
       if o.target?
-        ctx.target = o.target
+        ctx.target = getTarget(o.target)
 
       if o.offset?
         ctx.time += o.offset
@@ -54,7 +57,7 @@ class Animation
           c.time += offset
           end = process(value, c)
         else if isID(key)
-          c.target = key
+          c.target = getTarget(key)
           end = process(value, c)
         else
           if key in ["start", "target", "offset", "duration", "easing", "center"]
@@ -73,7 +76,7 @@ class Animation
 
       processTarget = () ->
         if isID(value[0])
-          ctx.target = value.shift()
+          ctx.target = getTarget(value.shift())
 
       processDuration = () ->
         duration = value[0]
@@ -173,7 +176,7 @@ class Animation
             a.type = value.shift()
 
           else if key is "translateOnId"
-            # Target cannot be provided explicitly, otherwise, it's ambiguous
+            ctx.namespace = namespace
             a.pathId = value.shift()
           else
             null # scaleOnId, rotateOnId
@@ -190,7 +193,9 @@ class Animation
 
       ctx.time + ctx.duration
 
-    @duration = process(timeline, new ActionContext(), null)
+
+    ctx = new ActionContext()
+    @duration = process(timeline, ctx, null)
 
     # Sort actions and labels
     compareActions = (a, b) => ActionContext.compare(a.context, b.context)
@@ -213,18 +218,11 @@ class Animation
     @actions = (e for e in @actions when e?) # Remove null elements
 
     # Init animation objects
-    for e in @actions
-      @objects[e.context.target] = true
-
-    for k, v of @objects
-      o = $(k)
-      if o.length == 1
-        ao = new AnimationObject(o[0])
+    for a in @actions
+      ao = a.context.target
+      if ao? and not @objects.has(ao)
         ao.setBase(State.fromAnimationObject(ao))
-
-        @objects[k] = ao
-      else
-        delete @objects[k]
+        @objects.add(ao)
 
     @goStart()
 
@@ -260,7 +258,7 @@ class Animation
     @currentBaseAnimation?.pause()
 
   goStart: () =>
-    o.resetState() for k, o of @objects
+    @objects.forEach (ao) -> ao.resetState()
 
     @currentTime = 0
     @currentActions = []
@@ -301,8 +299,7 @@ class Animation
     # Close current actions if needed
     @currentActions = @currentActions.filter (a) =>
       ctx = a.context
-      target = ctx.target
-      ao = @objects[target]
+      ao = ctx.target
 
       changed.add(ao)
       ao.addProvisionalAction(a, @currentTime)

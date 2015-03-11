@@ -1,18 +1,14 @@
 class Slide extends AnimationObject
   constructor: (element, meta) ->
-    super(element)
+    super(element, meta)
 
     se = Snap(@element)
     soe = Snap(@origElement)
 
-    @index = meta.view.index
-    @name = if meta.view.name? then meta.view.name else se.attr("id")
+    @index = meta.slide.index
 
-    @duration = if meta.view.duration? then meta.view.duration else 0
-    @easing = if meta.view.easing? then meta.view.easing else "inout"
-
-    if (meta?.view?.timeline?)
-      @animation = new Animation(meta.view.timeline)
+    @duration = if meta.slide.duration? then meta.slide.duration else 0
+    @easing = if meta.slide.easing? then meta.slide.easing else "inout"
 
     # Style
     soe.attr(fill: "#777", "fill-opacity": 0.4) #TODO Another rect to avoid problems with border?
@@ -27,3 +23,14 @@ class Slide extends AnimationObject
       "font-size": @width * 0.5
       fill: "#fff"
       "fill-opacity": 0.8
+
+  init: () =>
+    super()
+    @slideAnimation = @animations?["slide"]
+    @navigation = AnimationObject.byFullName[@namespace]
+
+    @navigation.slideList[@index] = this
+
+    $(@element).click () =>
+      @navigation.goTo(@index)
+      @navigation._setShowViews(false)

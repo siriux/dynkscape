@@ -1,16 +1,11 @@
 class TextScroll extends AnimationObject
 
-  @byName: {}
-
   constructor: (element, meta) ->
-    super(element)
+    super(element, meta)
 
     flowRoot = $(@element).find("flowRoot")[0]
 
     @scroll = 0
-
-    @name = if meta.textScroll.name? then meta.textScroll.name else Snap(@element).attr("id")
-    TextScroll.byName[@name] = this
 
     # Viewport
 
@@ -82,7 +77,7 @@ class TextScroll extends AnimationObject
     @maxScroll = Math.max(0, containerHeight - @_viewportHeight)
 
     # Raw, it's internal object
-    @animationObject = new AnimationObject(@container.node, @_viewportWidth, containerHeight, true)
+    @animationObject = new AnimationObject(@container.node, {}, @_viewportWidth, containerHeight, true)
     @animationObject.setBase(State.fromMatrix(localMatrix(rect)))
 
     # Scroll
@@ -134,6 +129,10 @@ class TextScroll extends AnimationObject
       @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
 
     @textContent.css(position: "static") # Revert to default
+
+  init: () =>
+    # TODO
+    super()
 
   setScroll: (s) =>
     if s < 0

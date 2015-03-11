@@ -1,20 +1,17 @@
 class Viewport
   @main: null # Static for the main viewport
 
-  constructor: (layerName, viewportEl) ->
+  constructor: (@layer, viewportEl) ->
     contents = null
 
-    # For layers, init a viewport that will clip the layer
-    if (not layerName?) || layerName == ""
-      @name = ""
+    if @layer.isMain()
       @isMain = true
       @element = sSvg.node
-      @layer = mainLayer
 
       @state = new State()
       @state.center = [0,0] # To use the same default
 
-      contents = (l.element for l in mainLayer.children)
+      contents = (l.element for l in @layer.children)
     else
       moveCoordsToMatrix(viewportEl)
       viewEl = Snap(viewportEl)
@@ -37,10 +34,8 @@ class Viewport
       snapViewport.append(clip)
       snapViewport.attr("clip-path": "url(##{clip.id})")
 
-      @name = layerName
       @isMain = false
       @element = snapViewport.node
-      @layer = inkscapeLayersByName[layerName]
 
       @width = clipRect.attr("width")
       @height = clipRect.attr("height")
@@ -54,7 +49,7 @@ class Viewport
     @container = Snap(@element).g().node
     $(@container).append(contents)
 
-    @animationObject = new AnimationObject(@container, svgPageWidth, svgPageHeight, true) # Raw, no clipping or compensation
+    @animationObject = new AnimationObject(@container, {}, svgPageWidth, svgPageHeight, true) # Raw, no clipping or compensation
     base = new State()
     base.center = [0,0]
     @animationObject.setBase(base)

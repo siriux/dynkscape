@@ -39,7 +39,7 @@ class ActionContext
     if a.time != b.time
       a.time - b.time
     else if a.target != b.target
-      stringCmp(a.target, b.target)
+      stringCmp(a.target.fullName, b.target.fullName)
     else if a.duration != b.duration
       a.duration - b.duration
     else if a.easing != b.easing

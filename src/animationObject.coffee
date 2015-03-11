@@ -1,5 +1,20 @@
 class AnimationObject
-  constructor: (@element, w, h, raw = false) ->
+
+  @byFullName = {}
+
+  constructor: (@element, meta, w, h, raw = false) ->
+    @namespace = meta.namespace ? ""
+    @name = meta.name
+
+    if @namespace != ""
+      @fullName = @namespace + "." + @name
+    else
+      @fullName = @name
+
+    # Animations
+    if (meta.animations?)
+      @animations = meta.animations
+
     se = Snap(@element)
     box = se.getBBox()
 
@@ -17,8 +32,12 @@ class AnimationObject
     @currentState = null
     @provisionalState = null
 
+    if @name? # Ignore anonymous animation objects
+      AnimationObject.byFullName[@fullName] = this
+
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
+
       # To be used as a view in navigations
       @viewState = State.fromMatrix(actualMatrix(@element))
 
@@ -55,6 +74,11 @@ class AnimationObject
       clip.append(use)
       clip.attr(id: clip.id)
       group.append(clip)
+
+  init: () =>
+    # Process meta animations
+    for name, meta of @animations
+      @animations[name] = new Animation(meta, @fullName) # current namespace is the object fullName
 
   setBase: (state) =>
     state.animationObject = this

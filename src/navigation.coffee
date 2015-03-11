@@ -1,31 +1,32 @@
 class Navigation extends AnimationObject
   @main
   @active
-  @mainNavigationContainer: null # Static for the main navigation
-  @byName: {}
+  @mainNavigationContainer: null
 
   constructor: (element, meta) ->
+    layer = AnimationObject.byFullName["layers." + meta.navigation.layer]
 
-    mnav =
-      if meta?
-        @isMain = false
-        meta.navigation
-      else
-        @isMain = true
-        # TODO Try to get from control
-        layer: ""
-
-    if @isMain
-      super(element, svgPageWidth, svgPageHeight, true) # Raw
-    else
-      super(element)
-
-    @viewport = new Viewport(mnav.layer, $(@element).find(".viewport")[0])
-    @name = @viewport.name
-
-    if @isMain
+    if layer.isMain()
+      @isMain = true
+      super(jSvg[0], meta, svgPageWidth, svgPageHeight, true) # Raw
       Navigation.main = this
+      viewportEl = null
+    else
+      @isMain = false
+      super(element, meta)
+      viewportEl = $(@element).find(".viewport")[0]
 
+    @viewport = new Viewport(layer, viewportEl)
+
+    @slideList = []
+
+    # Set the slides layer on top
+    @slidesLayer = @viewport.layer.slidesLayer
+    if @slidesLayer?
+      se = @slidesLayer.element
+      $(se).appendTo(se.parentNode)
+
+    if @isMain
       # Fix control on screen
       @control = $(@element).find(".mainNavigationControl")[0]
       m = actualMatrix(@control)
@@ -34,49 +35,27 @@ class Navigation extends AnimationObject
     else
       @control = $(@element).find(".navigationControl")[0]
 
-    @_loadSlides()
+    @lock = meta.navigation.hasOwnProperty("lock") && meta.navigation.lock != false
+    @showViews = meta.navigation.hasOwnProperty("showViews") && meta.navigation.showViews != false
+    @start = meta.navigation.start
+
+  init: () =>
+    super()
+
     @_initUserNavigation()
     @_initNavigationControl()
 
-    @_setLock(mnav.hasOwnProperty("lock") && mnav.lock != false)
-    @_setShowViews(mnav.hasOwnProperty("showViews") && mnav.showViews != false)
+    @_setLock(@lock)
+    @_setShowViews(@showViews)
     @_setActive(@viewport.isMain)
 
-    Navigation.byName[@name] = this
-
-    if mnav.start?
-      @goTo(mnav.start, true) # Go skipping animation
+    if @start?
+      @goTo(@start, true) # Go skipping animation
     else
-      @_setCurrentView(null)
-
-  _loadSlides: () =>
-    @slidesLayer = @viewport.layer.slidesLayer
-
-    # Set the slides layer on top
-    se = @slidesLayer.element
-    $(se).appendTo(se.parentNode)
-
-    # Slides
-    @slideIndexByName = {}
-    @slideList = []
-    if @slidesLayer?
-      processInkscapeMetaDescs @slidesLayer.element, (e, meta) =>
-        if meta.hasOwnProperty('view')
-          s = new Slide(e, meta)
-          @slideList.push(s)
-      @slideList.sort (a, b) -> a.index - b.index
-      @slideIndexByName[v.name] = i for v, i in @slideList
-
-    # Make slides clickable
-    for s, i in @slideList
-      e = s.element
-      do (i) =>
-        $(e).click () =>
-          @goTo(i)
-          @_setShowViews(false)
+      @_setCurrentSlide(null)
 
     # Full View
-    @fullView = new AnimationObject(@viewport.element, 0, 0, true)
+    @fullView = new AnimationObject(@viewport.element, {}, 0, 0, true)
     @fullView.viewState = @viewport.state.clone()
     @fullView.duration = 1000
     @fullView.easing = "inout"
@@ -104,15 +83,15 @@ class Navigation extends AnimationObject
     else
       $(@activeCueElement).css(opacity: 0.1)
 
-  _setCurrentView: (n) =>
+  _setCurrentSlide: (n) =>
     @currentView = n
     @currentSlideElementText?.textContent = if n? then n else "-"
 
-    v = @slideList[@currentView]
-    if v?.animation?
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
       $(@animationElements).css(opacity: 1)
-      v.animation.labelChangedCallback = @_updateCurrentLabel
-      v.animation.goStart()
+      s.slideAnimation.labelChangedCallback = @_updateCurrentLabel
+      s.slideAnimation.goStart()
     else
       $(@animationElements).css(opacity: 0.1)
       @currentLabelElementText?.textContent = "-"
@@ -133,8 +112,8 @@ class Navigation extends AnimationObject
       $(@currentSlideElementText).css(opacity: 1)
 
   _updateCurrentLabel: (n) =>
-    v = @slideList[@currentView]
-    if v?.animation?
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
       @currentLabelElementText?.textContent = n
 
       if n == 0
@@ -144,7 +123,7 @@ class Navigation extends AnimationObject
         $(@prevLabelElement).css(opacity: 1)
         $(@animStartElement).css(opacity: 1)
 
-      if n == v.animation.labels.length - 1
+      if n == s.slideAnimation.labels.length - 1
         $(@nextLabelElement).css(opacity: 0.1)
         $(@animEndElement).css(opacity: 0.1)
       else
@@ -230,7 +209,7 @@ class Navigation extends AnimationObject
             prevX = x
             prevY = y
 
-            @_setCurrentView(null)
+            @_setCurrentSlide(null)
 
             false
 
@@ -274,7 +253,7 @@ class Navigation extends AnimationObject
             scale = 1 + delta
             @viewport.scale(scale, cx, cy)
 
-          @_setCurrentView(null)
+          @_setCurrentSlide(null)
 
           false # Avoid zooming on windows if ctrl is pressed
 
@@ -380,13 +359,13 @@ class Navigation extends AnimationObject
   goTo: (dest, skipAnimation = false) =>
     if not @animating
       if typeof dest is 'string'
-        dest = @slideIndexByName[dest]
+        dest = AnimationObject.byFullName[dest].index
 
-      @_setCurrentView(dest)
-      v = @slideList[dest]
+      @_setCurrentSlide(dest)
+      s = @slideList[dest]
 
-      if v?
-        @goToView(v, skipAnimation)
+      if s?
+        @goToView(s, skipAnimation)
 
   goPrev: () =>
     if @slideList.length > 0
@@ -415,49 +394,49 @@ class Navigation extends AnimationObject
         @fullView.width = @viewport.width
         @fullView.height = @viewport.height
 
-      @_setCurrentView(null)
+      @_setCurrentSlide(null)
 
       @goToView(@fullView, false, false) # Don't skip animation, don't perform page centering
 
   viewPlay: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
       $(@pauseElement).show()
       $(@playElement).hide()
-      v.animation.play () =>
+      s.slideAnimation.play () =>
         $(@pauseElement).hide()
         $(@playElement).show()
 
 
   viewPause: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
       $(@pauseElement).hide()
       $(@playElement).show()
-      v.animation.pause()
+      s.slideAnimation.pause()
 
   viewPlayLabel: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
       @viewPause()
-      v.animation.playLabel()
+      s.slideAnimation.playLabel()
 
   viewAnimStart: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
-      v.animation.goStart()
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
+      s.slideAnimation.goStart()
 
   viewAnimEnd: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
-      v.animation.goEnd()
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
+      s.slideAnimation.goEnd()
 
   viewPrevLabel: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
-      v.animation.prevLabel()
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
+      s.slideAnimation.prevLabel()
 
   viewNextLabel: () =>
-    v = @slideList[@currentView]
-    if v?.animation?
-      v.animation.nextLabel()
+    s = @slideList[@currentView]
+    if s?.slideAnimation?
+      s.slideAnimation.nextLabel()
