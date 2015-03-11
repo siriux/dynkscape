@@ -28,11 +28,13 @@ initInkscapeLayers = () ->
 processInkscapeMetaDescs = (base, callback) ->
   $(base).find("desc").each (idx, d) ->
     text = $(d).text()
-    if text.match /^\s*#\s*meta/i
+    m = text.match /[\s\S]*#\s*meta\s*\n([\s\S]*)/i
+    if m?
+      meta = m[1]
       try
-        doc = jsyaml.load(text)
+        doc = MetaParser.parse(meta)
       catch e # Ignore non meta descs
-        console.log "Error parsing meta: #{text}"
+        console.log "Error parsing meta: #{meta}"
         throw e
       parent = d.parentNode
       callback(parent, doc)
@@ -42,15 +44,29 @@ processDefaultInkscapeMetaDescs = () ->
   metas = []
   processInkscapeMetaDescs document, (e, meta) ->
     if meta.class?
-      Snap(e).addClass(meta.class)
       classes = meta.class.split(" ")
     else
       classes = []
 
+    classes.push("AnimationObject")
+
+    Snap(e).addClass(classes.join(" "))
+
     metas.push([e, meta, classes])
 
+    aoIdx = metas.length - 1
+    $(e).data("aoIdx", aoIdx)
+
+  # Process __auto__ namespaces
+  for [e, meta, classes] in metas
+    if meta.namespace == "__auto__"
+      parent = $(e).parent().closest(".AnimationObject")
+      parentIdx = parent.data("aoIdx")
+      parentMeta = metas[parentIdx][1]
+      # TODO Allow nested __auto__ namespaces
+      meta.namespace = AnimationObject.createFullName(parentMeta.namespace, parentMeta.name)
+
   # Create the AnimationObjects
-  objects = []
   for [e, meta, classes] in metas
     if "Navigation" in classes
       o = new Navigation(e, meta)
@@ -64,8 +80,8 @@ processDefaultInkscapeMetaDescs = () ->
     else
       o = new AnimationObject(e, meta)
 
-    objects.push(o)
+    AnimationObject.objects.push(o)
 
   # Init all AnimationObjects
-  for ao in objects
+  for ao in AnimationObject.objects
     ao.init()

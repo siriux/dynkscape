@@ -29,6 +29,8 @@ class Layer extends AnimationObject
 
     @animationLayer?.hide() # Animation layers are hidden by default
 
+    @init() # Init directly
+
   isMain: () => @fullName == "layers.__main__"
 
   show: () => $(@element).show()

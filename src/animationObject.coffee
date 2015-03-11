@@ -1,15 +1,19 @@
 class AnimationObject
 
   @byFullName = {}
+  @objects = []
+
+  @createFullName: (namespace, name) ->
+    if namespace != ""
+      namespace + "." + name
+    else
+      name
 
   constructor: (@element, meta, w, h, raw = false) ->
     @namespace = meta.namespace ? ""
     @name = meta.name
 
-    if @namespace != ""
-      @fullName = @namespace + "." + @name
-    else
-      @fullName = @name
+    @fullName = AnimationObject.createFullName(@namespace, @name)
 
     # Animations
     if (meta.animations?)
@@ -34,6 +38,9 @@ class AnimationObject
 
     if @name? # Ignore anonymous animation objects
       AnimationObject.byFullName[@fullName] = this
+
+    if meta.raw?
+      raw = meta.raw
 
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
