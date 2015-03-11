@@ -75,7 +75,7 @@ class TextScroll extends AnimationObject
 
     # Raw, it's internal object
     @animationObject = new AnimationObject(@container.node, {}, @_viewportWidth, containerHeight, true)
-    base = State.fromMatrix(localMatrix(rect))
+    base = State.fromMatrix(localMatrix(rect.node))
     base.translateX += parseFloat(rect.attr("x")) or 0
     base.translateY += parseFloat(rect.attr("y")) or 0
     @animationObject.setBase(base)
@@ -99,7 +99,7 @@ class TextScroll extends AnimationObject
       .mousemove (e) =>
         # TODO Adapt scaleFactor to rotation !!!
         # TODO See how it's done for Navigation and Viewport
-        scaleFactor = matrixScaleY(globalMatrix(@viewport))
+        scaleFactor = matrixScaleY(globalMatrix(@viewport.node))
 
         prevY ?= e.clientY
 

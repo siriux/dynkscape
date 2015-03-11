@@ -1,5 +1,7 @@
 class Animation
 
+  @byFullName = {} # TODO
+
   constructor: (timeline, namespace) ->
 
     @actions = []

@@ -7,8 +7,8 @@ svgPageHeight = svgViewBox[3]
 svgProportions = svgPageWidth/svgPageHeight
 
 updateWindowDimensions = () =>
-  @windowWidth = $(window).width()
-  @windowHeight = $(window).height()
+  @windowWidth = window.innerWidth
+  @windowHeight = window.innerHeight
   @windowProportions = @windowWidth/@windowHeight
 
   @svgPageCorrectedWidth = svgPageWidth
@@ -29,10 +29,17 @@ $(window).resize(updateWindowDimensions)
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
-localMatrix = (element) -> Snap(element).transform().localMatrix
-globalMatrix = (element) -> new Snap.Matrix(Snap(element).node.getScreenCTM())
+localMatrix = (element) ->
+  m = null
+  bv = element.transform.baseVal
+  if bv? and bv.length > 0
+    m = bv[0]?.matrix
+  new Snap.Matrix(m)
+
+globalMatrix = (element) -> new Snap.Matrix(element.getScreenCTM())
+
 actualMatrix = (element, base) -> # Actual matrix with respect to base, including x,y translate
-  baseMatrix = if base? then globalMatrix(base) else globalMatrix(sSvg)
+  baseMatrix = if base? then globalMatrix(base) else globalMatrix(sSvg.node)
   elementMatrix = globalMatrix(element)
 
   e = Snap(element)
@@ -40,6 +47,7 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
   baseMatrix.invert().add(elementMatrix).translate(e.attr("x"), e.attr("y"))
 
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
+
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
 isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')

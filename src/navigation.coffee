@@ -308,10 +308,12 @@ class Navigation extends AnimationObject
 
     s.scaleX *= scaleFactor
     s.scaleY *= scaleFactor
+
     s
 
   goToView: (view, skipAnimation = false, centerPage = true) =>
     dest = @getStateForMaximizedView(view, centerPage)
+
     ao = @viewport.animationObject
 
     if (view.duration == 0 or skipAnimation)

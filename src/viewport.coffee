@@ -15,7 +15,7 @@ class Viewport
     else
       viewEl = Snap(viewportEl)
 
-      viewportMatrix = actualMatrix(viewEl) # TODO Remove transformations of parent? Is needed?
+      viewportMatrix = actualMatrix(viewEl.node) # TODO Remove transformations of parent? Is needed?
 
       snapViewport = Snap(Viewport.main.container).g()
 

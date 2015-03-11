@@ -15,7 +15,10 @@ class Slide extends AnimationObject
 
     se.attr(cursor: "pointer")
 
-    t = se.text(@width*0.5, @height*0.5, @index.toString())
+    x = parseFloat(soe.attr("x")) or 0
+    y = parseFloat(soe.attr("y")) or 0
+
+    t = se.text(x + @width*0.5, y + @height*0.5, @index.toString())
     t.attr
       "text-anchor": "middle"
       dy: ".3em"
