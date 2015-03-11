@@ -13,7 +13,6 @@ class Viewport
 
       contents = (l.element for l in @layer.children)
     else
-      moveCoordsToMatrix(viewportEl)
       viewEl = Snap(viewportEl)
 
       viewportMatrix = actualMatrix(viewEl) # TODO Remove transformations of parent? Is needed?

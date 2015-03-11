@@ -217,12 +217,9 @@ class Animation
           j += 1
     @actions = (e for e in @actions when e?) # Remove null elements
 
-    # Init animation objects
+    # Get all animation objects in the animation
     for a in @actions
-      ao = a.context.target
-      if ao? and not @objects.has(ao)
-        ao.setBase(State.fromAnimationObject(ao))
-        @objects.add(ao)
+      @objects.add(a.context.target)
 
     @goStart()
 

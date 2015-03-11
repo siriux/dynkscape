@@ -41,27 +41,28 @@ class AnimationObject
       # To be used as a view in navigations
       @viewState = State.fromMatrix(actualMatrix(@element))
 
-      # Set base state
-      m = moveCoordsToMatrix(@element)
-      s = State.fromMatrix(m)
+      # Base state
+      s = State.fromMatrix(localMatrix(@element))
       s.opacity = $(@element).css("opacity")
       s.animationObject = this
       s.changeCenter([0.5, 0.5]) # fromMatrix has de wrong default center
-      @setBase(s)
-
-      # To compensate offset of objects inside a group
-      @compensateDelta =
-        x: box.x - s.translateX
-        y: box.y - s.translateY
 
       # Wrap in a group
       @origElement = @element
       group = sSvg.g()
       $(@element).replaceWith(group.node)
       group.append(@element)
-      group.attr(transform: m)
       se.attr(transform: "")
       @element = group.node
+
+      # Set base state on the group
+      @setBase(s)
+
+      # To compensate offset of objects inside a group
+      box = Snap(@element).getBBox()
+      @compensateDelta =
+        x: box.x - s.translateX
+        y: box.y - s.translateY
 
       # Add clipPath
       clip = Snap(svgElement("clipPath"))

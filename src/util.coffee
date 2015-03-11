@@ -42,17 +42,6 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
-moveCoordsToMatrix = (element) ->
-  e = Snap(element)
-  local = e.transform().localMatrix
-  newLocal = local.translate(e.attr("x"), e.attr("y"))
-  e.transform(newLocal)
-
-  e.attr("x", 0)
-  e.attr("y", 0)
-
-  newLocal
-
 isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')
 
 stringCmp = (a, b) ->

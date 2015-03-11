@@ -36,17 +36,6 @@ class State
     s.center = [0,0] # Math is based on [0,0]
     s
 
-  @fromAnimationObject: (ao) ->
-    e = ao.element
-    s = @fromMatrix(moveCoordsToMatrix(e))
-    s.animationObject = ao
-    s.opacity = $(e).css("opacity")
-
-    # fromMatrix has de wrong default center
-    s.changeCenter([0.5, 0.5])
-
-    s
-
   width: () => @animationObject.width
   height: () => @animationObject.height
 

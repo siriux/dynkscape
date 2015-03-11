@@ -13,13 +13,10 @@ class TextScroll extends AnimationObject
 
     rect = Snap(flowRoot).select("flowRegion > rect")
 
-    @_viewportX = rect.attr("x")
-    @_viewportY = rect.attr("y")
     @_viewportWidth = rect.attr("width")
     @_viewportHeight = rect.attr("height")
 
     rect.attr(transform: $(flowRoot).attr("transform"))
-    moveCoordsToMatrix(rect.node)
 
     clip = Snap(svgElement("clipPath"))
     clipRect = rect.clone()
@@ -78,7 +75,10 @@ class TextScroll extends AnimationObject
 
     # Raw, it's internal object
     @animationObject = new AnimationObject(@container.node, {}, @_viewportWidth, containerHeight, true)
-    @animationObject.setBase(State.fromMatrix(localMatrix(rect)))
+    base = State.fromMatrix(localMatrix(rect))
+    base.translateX += parseFloat(rect.attr("x")) or 0
+    base.translateY += parseFloat(rect.attr("y")) or 0
+    @animationObject.setBase(base)
 
     # Scroll
 
