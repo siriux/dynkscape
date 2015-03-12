@@ -166,12 +166,13 @@ To reference a name, you must start with '#' for animation objects, '@' for anim
 To resolve a name, first, it tries to find the name in the local context (for variables in animations).
 Then, if not found, it tries to find the name in the global space prepending the
 current namespace and '.' to the name provided. If that fails, it tries the raw name in the
-global space. TODO Add something like #/ to force global.
+global space (to force this, see '*%' below).
 
-When defining vars in Meta, they use as namespace the current full name.
-The same happens with the animations.
+It's also possible to navigate up in the namespace, writing any number of '%' after
+'#', '@' or '$'. Each '%' means one level up in the namespace. To navigate all
+levels up you can use '*%'. For example '#%%%foo.var' navigates 3 levels up, and
+then, goes down two.
 
-So, to reference an animation or a variable from the same Meta use '@name' or '$name'. To reference
-the animation object itself, just use '#'.
-
-If you want to reference outside things use "#name.space.name", "@name.space.name" or "$name.space.name"
+When defining animations or variables in Meta, they use as namespace the current
+full name. So, to reference an animation or a variable from the same Meta use '@name' or '$name'.
+To reference the animation object itself, just use '#'.

@@ -68,7 +68,10 @@ class MetaParser
     try
       parser.parse(string)
     catch e
-      console.log "Error parsing #{string}"
+      console.log "Error parsing Meta:"
+      for l,i in string.split("\n")
+        console.log "#{i}: #{l}"
+
       console.log "At line #{e.line} char #{e.column}: #{e.message}"
 
   @_indent: 0
@@ -129,7 +132,26 @@ metaOut = MetaParser.parse """
        - rotate: 30 d=2.3 */
   """
 
+metaOut2 = MetaParser.parse """
+class: Slide
+namespace: slideTest
+name: s0
+slide:
+ index: 0
+ duration: 1000
+animations:
+ @slide:
+  - transform #cursor: path=#path$0..1 d=1.5 e=inout
+  - transform #cursor: s=0.8 r=-15 d=0.1 e=out o=0.2
+  - d=1.5 e=inout o=0.2:
+   / transform #cursor: path=#path$1..2
+   / transform #var: path=#path$1..2
+  - transform #cursor: s=1.25 r=15 d=0.1 e=out o=0.2
+  - transform #cursor: path=#path$2..3 e=inout o=0.2
+"""
+
 animOut = MetaParser.parseAnimation "scale #foo: 2 3; rotate #bar: 25 d=37"
 
 #console.log JSON.stringify(metaOut, null, 2)
+#console.log JSON.stringify(metaOut2, null, 2)
 #console.log JSON.stringify(animOut, null, 2)

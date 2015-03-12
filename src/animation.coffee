@@ -1,11 +1,11 @@
 class Animation
 
-  @byFullName = {} # TODO
+  @byFullName = {}
 
-  constructor: (timeline, namespace) ->
+  constructor: (animDesc, @namespace, @name) -> # @name is optional, it can be parsed from the desc
 
     @actions = []
-    @objects = new Set()
+    @targets = new Set()
     @labels = []
     @labelByName = {}
     @duration = 0
@@ -13,191 +13,171 @@ class Animation
     @currentActions = []
     @nextAction = 0
 
-    getTarget = (id) =>
-      AnimationObject.byFullName[namespace + "." + id[1..]]
+    shiftNextPositional = (o) => o.__positionals?.shift()
 
-    process = (o, ctx) =>
-      if o instanceof Array
-        processSequential(o, ctx)
-      else if o instanceof Object
-        processParallel(o, ctx)
+    processContextPositionals = (o, vars) =>
+      c = shiftNextPositional(o)
+      if c?
+        vars.target = c
 
-    processSequential = (a, ctx) =>
-      c = ctx.clone()
-      for l in a
-        end = process(l, c)
-        c = ctx.clone()
-        c.time = end
-      c.time
+      c = shiftNextPositional(o)
+      if c?
+        vars.duration = c
 
-    processParallel = (o, ctx) =>
-      if o.start?
-        ctx.time = o.start
+      c = shiftNextPositional(o)
+      if c?
+        vars.easing = c
 
-      if o.target?
-        ctx.target = getTarget(o.target)
+      c = shiftNextPositional(o)
+      if c?
+        vars.offset = c
 
-      if o.offset?
-        ctx.time += o.offset
+      c = shiftNextPositional(o)
+      if c?
+        vars.center = c
 
-      if o.duration != undefined # Use undefined to allow null reset
-        ctx.duration = o.duration
-        totalDuration = o.duration
+      c = shiftNextPositional(o)
+      if c?
+        vars.namespace = c
 
-      if o.easing != undefined # Use undefined to allow null reset
-        ctx.easing = o.easing
+      c = shiftNextPositional(o)
+      if c?
+        vars.label = c
 
-      if o.center != undefined # Use undefined to allow null reset
-        ctx.center = o.center
+    toLongContextNames = (vars) =>
+      if vars.d
+        vars.duration = vars.d
+        delete vars.d
 
-      endTime = ctx.time
+      if vars.e
+        vars.easing = vars.e
+        delete vars.e
 
-      for key, value of o
-        offset = parseFloat(key)
-        c = ctx.clone()
-        if !isNaN(offset) # Is a number?
-          c.time += offset
-          end = process(value, c)
-        else if isID(key)
-          c.target = getTarget(key)
-          end = process(value, c)
-        else
-          if key in ["start", "target", "offset", "duration", "easing", "center"]
-            continue
-          end = processAction(key, value, c)
+      if vars.o
+        vars.offset = vars.o
+        delete vars.o
 
-        endTime = Math.max(endTime, end)
+      if vars.c
+        vars.center = vars.c
+        delete vars.c
 
-      endTime
+      if vars.n
+        vars.namespace = vars.n
+        delete vars.n
 
-    processAction = (key, value, ctx) =>
+      if vars.l
+        vars.label = vars.l
+        delete vars.l
 
-      value = [null] if value is null
+    setContextDefaults = (vars) =>
+      vars.duration ?= 1
+      vars.easing ?= "linear"
+      vars.center ?= [0.5, 0.5]
+      vars.namespace ?= ""
 
-      value = [].concat(value) # Convert to array if needed
+    getReferences = (vars) =>
+      namespace = vars.namespace
+      for name, value of vars
+        if typeof value is "string"
+          switch value.chatAt(0)
+            when "#"
+              # TODO Parse relative and try raw
+              ao = AnimationObject.byFullName[namespace + "." + value[1..]]
+              vars[name] = ao
+              if name == "target"
+                @targets.add(ao)
+            # TODO Animations and variables
 
-      processTarget = () ->
-        if isID(value[0])
-          ctx.target = getTarget(value.shift())
+    process = (l, r, vars) =>
+      parallel = true
 
-      processDuration = () ->
-        duration = value[0]
-        if !isNaN(duration)
-          ctx.duration = duration
-          value.shift()
+      c = shiftNextPositional(l)
 
-      processEasing = () ->
-        easing = value[0]
-        if isEasing(easing)
-          ctx.easing = easing
-          value.shift()
+      # Process step type
+      if c == "-"
+        parallel = false
+        c = shiftNextPositional(l)
+      else if c == "/"
+        c = shiftNextPositional(l)
+      else if c.charAt(0) == "@"
+        @name = c[1..]
+        c = shiftNextPositional(l)
 
-      processCenter = () ->
-        center = value[0]
-        if center instanceof Array and center.length == 2
-          ctx.center = center
-          value.shift()
+      # Process action
+      if c in Action.actionNames # TODO
+        action = c
+        c = shiftNextPositional(l)
 
-      switch key
+      # Process left context positionals
+      processContextPositionals(l, vars)
 
-        # Label
+      # Add right named to vars
+      delete l.__positionals
+      $.extend(vars, l)
 
-        when "label"
-          l =
-            name: value[0]
-            time: ctx.time
-          @labels.push l
-          @labelByName[value[0]] = l
+      originalTime = vars.time
+      currentEnd = vars.time
 
-        # Properties
+      if action?
+        # Process right action positionals
+        Action.processPositionals[action](r, vars) # TODO
 
-        when "translate"
-          a = new Action(ctx)
-          @actions.push(a)
+        # Process right context positionals
+        processContextPositionals(r, vars)
 
-          processTarget()
+        # Add right named to vars
+        delete r.__positionals
+        $.extend(vars, r)
 
-          a.translateX = value.shift()
-          a.translateY = value.shift()
+        # Transform to long names
+        Action.toLongNames[action](vars) # TODO
+        toLongContextNames(vars)
 
-          processDuration()
-          processEasing()
+        # Add defaults on missing
+        Action.setDefaults[action](vars) # TODO
+        setContextDefaults(vars)
 
-        when "scale"
-          processTarget()
+        # Process offset
+        vars.time += vars.offset or 0
 
-          sx = sy = value.shift()
+        # Get references to AO, Animations and Variables
+        getReferences(vars)
 
-          if sx instanceof Array
-            sy = sx[1]
-            sx = sx[0]
+        # Create action on @actions
+        @actions.push new Action(action, vars)
 
-          processDuration()
-          processEasing()
-          processCenter()
+        # Update currentEnd
+        currentEnd = vars.time + vars.duration
+      else
+        # Process offset
+        currentEnd += vars.offset or vars.o or 0
+        delete vars.offset
+        delete vars.o
 
-          a = new Action(ctx)
-          @actions.push(a)
+        # Get references to AO, Animations and Variables
+        getReferences(vars)
 
-          a.scaleX = sx
-          a.scaleY = sy
+        # Process children
+        if r instanceof Array
+          for c in r
+            newVars = $.extend({}, vars)
+            newVars.time = currentEnd
+            currentEnd = process(c[0], c[1], newVars)
 
-        when "rotate"
-          a = new Action(ctx)
-          @actions.push(a)
+      # Label
+      if vars.label?
+        l =
+          name: vars.label
+          time: vars.time
+        @labels.push l
+        @labelByName[vars.label] = l
 
-          processTarget()
+      if parallel
+        originalTime
+      else
+        currentEnd
 
-          a.rotation = value.shift()
-
-          processDuration()
-          processEasing()
-          processCenter()
-
-        when "opacity"
-          a = new Action(ctx)
-          @actions.push(a)
-
-          processTarget()
-
-          a.opacity = value.shift()
-
-          processDuration()
-          processEasing()
-
-        # Effects
-
-        when "attention", "hide", "show", "translateOnId"
-          a = new Action(ctx)
-          @actions.push(a)
-
-          a.effect = key
-
-          if key in ["attention", "hide", "show"]
-            processTarget()
-            a.type = value.shift()
-
-          else if key is "translateOnId"
-            ctx.namespace = namespace
-            a.pathId = value.shift()
-          else
-            null # scaleOnId, rotateOnId
-
-          processDuration()
-          processEasing()
-
-          initEffect(key, a)
-
-        else
-          return ctx.time # Avoid adding extra duration
-
-      ctx.fillDefaults()
-
-      ctx.time + ctx.duration
-
-
-    ctx = new ActionContext()
-    @duration = process(timeline, ctx, null)
+    @duration = process(animDesc[0], animDesc[1], (time: 0, namespace: namespace), null)
 
     # Sort actions and labels
     compareActions = (a, b) => ActionContext.compare(a.context, b.context)
@@ -207,21 +187,8 @@ class Animation
     @labels.unshift(name: "start", time: 0) # Add start label
     @labels.push(name: "end", time: @duration) # Add end label
 
-    # De-duplicate
-    l = @actions.length
-    for i in [0..l-1] # Avoid last
-      if @actions[i]?
-        j = 1
-        while i+j < l and compareActions(@actions[i], @actions[i+j]) == 0
-          e = @actions[i+j]
-          @actions[i].merge(e) # Merge action e into the current action
-          @actions[i+j] = null # Set to null for later removal
-          j += 1
-    @actions = (e for e in @actions when e?) # Remove null elements
-
-    # Get all animation objects in the animation
-    for a in @actions
-      @objects.add(a.context.target)
+    @fullname = if @namespace != "" then @namespace + "." + @name else @name
+    Animation.byFullName[@fullname] = this
 
     @goStart()
 
@@ -257,7 +224,7 @@ class Animation
     @currentBaseAnimation?.pause()
 
   goStart: () =>
-    @objects.forEach (ao) -> ao.resetState()
+    @targets.forEach (ao) -> ao.resetState()
 
     @currentTime = 0
     @currentActions = []

@@ -85,8 +85,13 @@ class AnimationObject
 
   init: () =>
     # Process meta animations
-    for name, meta of @animations
-      @animations[name] = new Animation(meta, @fullName) # current namespace is the object fullName
+    animsMeta = @animations
+    @animations = {}
+    for name, meta of animsMeta
+      console.log JSON.stringify(meta, null, 2)
+      a = new Animation(meta, @fullName) # current namespace is the object fullName
+      console.log a
+      @animations[a.name] = a # TODO put it on Animation.byFullName
 
   setBase: (state) =>
     state.animationObject = this
