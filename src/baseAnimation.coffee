@@ -8,7 +8,7 @@ class BaseAnimation
     if not @paused
       if !@_last
         @_last = timestamp
-      delta = timestamp - @_last
+      delta = (timestamp - @_last) / 1000 # In seconds
       @progress += delta
       @_last = timestamp
       @_advanceTime(delta)

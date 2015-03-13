@@ -1,91 +1,83 @@
 class ActionDesc
 
   @register: (a) ->
-
-    # TODO
+    Action.actionNames.add(a.name)
 
     Action.descs[a.name] =
       init: a.init
-      processPositionals: null
+      processPositionals: (side, vars) ->
+        for arg in a.arguments
+          value = side.__positionals?.shift()
+          if value?
+            vars[arg[0]] = value
+          else
+            break;
 
-      toLongNames: null
+      toLongNames: (vars) ->
+        for arg in a.arguments
+          short = arg[1]
+          if vars[short]?
+            vars[arg[0]] = vars[short]
+            delete vars[short]
 
-      setDefaults: null
+      setDefaults: (vars) ->
+        for arg in a.arguments
+          vars[arg[0]] ?= arg[2]
 
-      singleStart: null
+        for k,v of a.defaultContext
+          vars[k] ?= v
 
-      singleEnd: null
+      singleStart: a.singleStart
+
+      singleEnd: a.singleEnd
+
+      exec: a.exec
+
+  @applyOnStateHelper: (target, last, f) ->
+    f(target.getProvisional())
+
+    if last
+      f(target.currentState)
+      
+    target
 
 class Action
 
-  @actionNames: []
+  @actionNames: new Set()
 
   @descs: {}
 
   constructor: (@name, @vars) ->
-    @time = @vars.time
     @desc = Action.descs[@name]
     @desc.init?(@vars) # It can modify or define new vars
+    @time = @vars.time
+    @duration = @vars.duration
 
   singleStart: () => @desc.singleStart?(@vars)
 
   singleEnd: () => @desc.singleEnd?(@vars)
 
   exec: (time) =>
-    offset = time - @context.time
-    rawDelta = Math.min(Math.max(offset / @context.duration, 0), 1)
+    offset = time - @time
+    rawDelta = Math.min(Math.max(offset / @duration, 0), 1)
 
     if 0 < rawDelta < 1
-      delta = getEasing(@context.easing)(rawDelta)
+      delta = getEasing(@vars.easing)(rawDelta)
     else
       delta = rawDelta
 
-    # TODO Calculate if the action has ended
+    last = time >= (@time + @duration)
 
-    # TODO
-    # We have to handle state clonning in the action, if needed.
-    # For Action objects, use provisional and current.
-    # Apply the action to current if ended.
-    # Keep track of provisionals (argument?) and make sure they are applied !!!!
+    @desc.exec(@vars, delta, rawDelta, last)
 
-ActionDesc.register
-  name: "foo"
-  init: (vars) ->
-    vars.duration = 0 # Here we can force duration for external actions
-  arguments: [
-    ["translateX", "tx"]  # Name, short and optionally default
-    ["scale", null, 3]    # If short is missing, but want default
-    "rotate"              # Only long name without default
-  ]
-  defaultContext:
-    duration: 1.5
-  exec: (vars, delta, rawDelta, last) ->
+  getAnim: (onEnd) =>
+    time = 0
 
-    ###
-    # If state center is not the right one, change it before applying
-    if state.center[0] != @context.center[0] or state.center[1] != @context.center[1]
-      state.changeCenter(@context.center)
+    @time ?= 0
 
-    if @translateX?
-      state.translateX += @translateX * delta
+    advanceTime = (delta) =>
+      time += delta
+      ao = @exec(time)
+      ao.applyProvisional()
 
-    if @translateY?
-      state.translateY += @translateY * delta
-
-    diffScaleX = (state.scaleX * @scaleX) - state.scaleX
-    if @scaleX?
-      state.scaleX += diffScaleX * delta
-
-    diffScaleY = (state.scaleY * @scaleY) - state.scaleY
-    if @scaleY?
-      state.scaleY += diffScaleY * delta
-
-    if @rotation?
-      state.rotation += @rotation * delta
-
-    if @opacity?
-      state.opacity = @opacity * delta
-
-    if @effect?
-      applyEffect(@effect, this, state, delta, rawDelta)
-    ###
+    new BaseAnimation(@vars.duration, advanceTime, onEnd)

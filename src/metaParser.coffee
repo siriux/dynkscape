@@ -37,9 +37,9 @@ class MetaParser
 
   start = positional? (ws positional)* named? (ws named)* { return __res }
 
-  positional = !(id:id ws? "=") v:value { __res["__positionals"].push(v) }
+  positional = !(id:id ws? "=") value:value { __res["__positionals"].push(MetaParser._toValue(value)) }
 
-  named = id:id ws? "=" ws? value:value { __res[id]=value }
+  named = id:id ws? "=" ws? value:value { __res[id]=MetaParser._toValue(value) }
 
   id = c:[a-zA-Z0-9_]+ { return c.join("") }
 
@@ -76,6 +76,14 @@ class MetaParser
 
   @_indent: 0
 
+  @_toValue: (value) ->
+    # Try to parse as JSON values
+    try
+      value = JSON.parse(value)
+    catch
+
+    value
+
   @_processMain: (left, right) =>
 
     indent = MetaParser._indent
@@ -97,10 +105,7 @@ class MetaParser
       value = if key == "animations" or inAnimations then [] else {}
       @_stack.push([indent, value])
     else if not inAnimations
-      # Try to parse as JSON values
-      try
-        value = JSON.parse(value)
-      catch
+      value = MetaParser._toValue(value)
 
     if inAnimations
       # ParseSides

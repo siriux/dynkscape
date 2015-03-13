@@ -72,12 +72,13 @@ class State
     y: trans.y - vec.y
 
   changeCenter: (c) =>
-    cp = @_calcCenterChange(c)
+    if @center[0] != c[0] or @center[1] != c[1]
+      cp = @_calcCenterChange(c)
 
-    @translateX += cp.x
-    @translateY += cp.y
+      @translateX += cp.x
+      @translateY += cp.y
 
-    @center = c
+      @center = c
 
   apply: () =>
 

@@ -97,15 +97,13 @@ class AnimationObject
     @baseState.apply()
     @currentState = @baseState.clone()
 
-  addAction: (a, time) => a.applyTo(@currentState, time)
-
   applyCurrent: () =>
     @currentState.apply()
 
-  addProvisionalAction: (a, time) =>
+  getProvisional: () =>
     if not @provisionalState?
       @provisionalState = @currentState.clone()
-    a.applyTo(@provisionalState, time)
+    @provisionalState
 
   applyProvisional: () =>
     @provisionalState.apply()

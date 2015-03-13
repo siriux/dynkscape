@@ -13,36 +13,17 @@ class Animation
     @currentActions = []
     @nextAction = 0
 
+    peekNextPositional = (o) => o.__positionals?[0]
     shiftNextPositional = (o) => o.__positionals?.shift()
 
     processContextPositionals = (o, vars) =>
       c = shiftNextPositional(o)
-      if c?
-        vars.target = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.duration = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.easing = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.offset = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.center = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.namespace = c
-
-      c = shiftNextPositional(o)
-      if c?
-        vars.label = c
+      for action in ["target", "duration", "easing", "offset", "center", "namespace", "label"]
+        if c?
+          vars[action] = c
+          c = shiftNextPositional(o)
+        else
+          break
 
     toLongContextNames = (vars) =>
       if vars.d
@@ -91,22 +72,24 @@ class Animation
     process = (l, r, vars) =>
       parallel = true
 
-      c = shiftNextPositional(l)
+      c = peekNextPositional(l)
 
       # Process step type
       if c == "-"
         parallel = false
-        c = shiftNextPositional(l)
+        shiftNextPositional(l)
       else if c == "/"
-        c = shiftNextPositional(l)
+        shiftNextPositional(l)
       else if c.charAt(0) == "@"
+        parallel = false
         @name = c[1..]
-        c = shiftNextPositional(l)
+        shiftNextPositional(l)
 
       # Process action
-      if c in Action.actionNames
+      c = peekNextPositional(l)
+      if Action.actionNames.has(c)
         action = c
-        c = shiftNextPositional(l)
+        shiftNextPositional(l)
 
       # Process left context positionals
       processContextPositionals(l, vars)
@@ -161,10 +144,19 @@ class Animation
 
         # Process children
         if r instanceof Array
+          childrenEnd = currentEnd
           for c in r
             newVars = $.extend({}, vars)
             newVars.time = currentEnd
-            currentEnd = process(c[0], c[1], newVars)
+            [end, para] = process(c[0], c[1], newVars)
+
+            if para
+              childrenEnd = Math.max(childrenEnd, end)
+            else
+              currentEnd = end
+              childrenEnd = end
+
+          currentEnd = childrenEnd
 
       # Label
       if vars.label?
@@ -174,12 +166,10 @@ class Animation
         @labels.push l
         @labelByName[vars.label] = l
 
-      if parallel
-        originalTime
-      else
-        currentEnd
 
-    @duration = process(animDesc[0], animDesc[1], (time: 0, namespace: @namespace), null)
+      [currentEnd, parallel]
+
+    [@duration, parallel] = process(animDesc[0], animDesc[1], (time: 0, namespace: @namespace), null)
 
     # Sort actions and labels
     @actions.sort((a, b) => a.time - b.time)
@@ -268,12 +258,13 @@ class Animation
     # Close current actions if needed
     changed = new Set()
     @currentActions = @currentActions.filter (a) =>
+
       ao = a.exec(@currentTime)
 
       if ao?
         changed.add(ao)
 
-      if @currentTime >= ctx.time + ctx.duration
+      if @currentTime >= (a.time + a.duration)
         if execSingle
           a.singleEnd()
         false

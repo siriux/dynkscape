@@ -109,6 +109,7 @@ transform: target translate/translateX/translateY/t/tx/ty
                   scale/scaleX/scaleY/s/sx/sy
                   rotate/r
                   path # Path can contain a path and scale/rotate objects
+                  range # Range in a path
 
 style: target opacity/fill/stroke/font ...
 

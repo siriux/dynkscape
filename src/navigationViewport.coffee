@@ -57,15 +57,15 @@ class NavigationViewport  extends AnimationObject
   getFullView: () =>
     fV = new AnimationObject(@element, {}, 0, 0, true)
     fV.viewState = @viewportBaseState.clone()
-    fV.duration = 1000
+    fV.duration = 1
     fV.easing = "inout"
 
     if @isMain
       fV.width = svgPageCorrectedWidth
       fV.height = svgPageCorrectedHeight
     else
-      fV.width = @viewport.clipWidth
-      fV.height = @viewport.clipHeight
+      fV.width = @clipWidth
+      fV.height = @clipHeight
 
     fV
 

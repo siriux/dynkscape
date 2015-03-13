@@ -266,35 +266,21 @@ class Navigation extends AnimationObject
 
       diff = current.diff(dest)
 
-      ctx = new ActionContext()
-      ctx.duration = view.duration
-      ctx.easing = view.easing
-      ctx.center = diff.center
-
-      a = new Action()
-      a.context = ctx
-      a.translateX = diff.translateX
-      a.translateY = diff.translateY
-      a.scaleX = diff.scaleX
-      a.scaleY = diff.scaleY
-      a.rotation = diff.rotation
-
-      time = 0
+      a = new Action "transform",
+        time: 0
+        target: @viewport
+        translateX: diff.translateX
+        translateY: diff.translateY
+        scaleX: diff.scaleX
+        scaleY: diff.scaleY
+        rotate: diff.rotation
+        center: diff.center
+        duration: view.duration ? 1
+        easing: view.easing ? "linear"
 
       @animating = true
-
-      advanceTime = (delta) =>
-        time += delta
-        @viewport.addProvisionalAction(a, time)
-        @viewport.applyProvisional()
-
-      onEnd = () =>
-        @viewport.addAction(a, time)
-        @viewport.applyCurrent()
-        @animating = false
-
-      ba = new BaseAnimation(view.duration, advanceTime, onEnd)
-      ba.play()
+      anim = a.getAnim () => @animating = false
+      anim.play()
 
   goTo: (dest, skipAnimation = false) =>
     if not @animating
