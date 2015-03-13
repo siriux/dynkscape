@@ -79,7 +79,7 @@ class Animation
       namespace = vars.namespace
       for name, value of vars
         if typeof value is "string"
-          switch value.chatAt(0)
+          switch value.charAt(0)
             when "#"
               # TODO Parse relative and try raw
               ao = AnimationObject.byFullName[namespace + "." + value[1..]]
@@ -104,7 +104,7 @@ class Animation
         c = shiftNextPositional(l)
 
       # Process action
-      if c in Action.actionNames # TODO
+      if c in Action.actionNames
         action = c
         c = shiftNextPositional(l)
 
@@ -119,8 +119,10 @@ class Animation
       currentEnd = vars.time
 
       if action?
+        actionDesc = Action.descs[action]
+
         # Process right action positionals
-        Action.processPositionals[action](r, vars) # TODO
+        actionDesc.processPositionals(r, vars)
 
         # Process right context positionals
         processContextPositionals(r, vars)
@@ -130,11 +132,11 @@ class Animation
         $.extend(vars, r)
 
         # Transform to long names
-        Action.toLongNames[action](vars) # TODO
+        actionDesc.toLongNames(vars)
         toLongContextNames(vars)
 
         # Add defaults on missing
-        Action.setDefaults[action](vars) # TODO
+        actionDesc.setDefaults(vars)
         setContextDefaults(vars)
 
         # Process offset
@@ -177,11 +179,10 @@ class Animation
       else
         currentEnd
 
-    @duration = process(animDesc[0], animDesc[1], (time: 0, namespace: namespace), null)
+    @duration = process(animDesc[0], animDesc[1], (time: 0, namespace: @namespace), null)
 
     # Sort actions and labels
-    compareActions = (a, b) => ActionContext.compare(a.context, b.context)
-    @actions.sort(compareActions)
+    @actions.sort((a, b) => a.time - b.time)
 
     @labels.sort((a, b) => a.time - b.time)
     @labels.unshift(name: "start", time: 0) # Add start label
@@ -193,7 +194,8 @@ class Animation
     @goStart()
 
   _play: (length, onEnd) =>
-    @currentBaseAnimation = new BaseAnimation length, @advanceTime, () =>
+    aT = (delta) => @advanceTime(delta, true)
+    @currentBaseAnimation = new BaseAnimation length, aT, () =>
       @currentBaseAnimation = null
       onEnd?()
     @currentBaseAnimation.play()
@@ -249,31 +251,31 @@ class Animation
       @goStart()
       @advanceTime(@labels[prevLabel].time)
 
-  advanceTime: (delta) =>
+  advanceTime: (delta, execSingle = false) =>
     @currentTime += delta
 
     while @currentLabel < @labels.length - 1 and @labels[@currentLabel + 1].time <= @currentTime
       @_changeCurrentLabel(@currentLabel + 1)
 
-    changed = new Set()
-
     # Add new actions
-    while @nextAction < @actions.length and @actions[@nextAction].context.time <= @currentTime
-      @currentActions.push(@actions[@nextAction])
+    while @nextAction < @actions.length and @actions[@nextAction].time <= @currentTime
+      a = @actions[@nextAction]
+      if execSingle
+        a.singleStart()
+      @currentActions.push(a)
       @nextAction += 1
 
     # Close current actions if needed
+    changed = new Set()
     @currentActions = @currentActions.filter (a) =>
-      ctx = a.context
-      ao = ctx.target
+      ao = a.exec(@currentTime)
 
-      changed.add(ao)
-      ao.addProvisionalAction(a, @currentTime)
+      if ao?
+        changed.add(ao)
 
       if @currentTime >= ctx.time + ctx.duration
-        # If closing, apply the action to the current state too
-        # so that in next iteration, it's taken into account
-        ao.addAction(a, @currentTime)
+        if execSingle
+          a.singleEnd()
         false
       else
         true

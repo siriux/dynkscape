@@ -133,11 +133,12 @@ inside this animation. Any jump in the animation (except while playing) might no
 trigger the external actions. Therefore this information has to be available to the action
 to decide. Include var to configure it?
 
-play: target repeat=[n, loop] anim=[true, false] # Duration can be set
-playTo: target end=[label, time, +n] anim=[true, false] # +2 means play next two labels
-                                                        # Without animation, it can be used to go to a point
-                                                        # loop???
-                                                        # target can be navigation, then is current slide animation
+play: target repeat=[n, loop] anim=[true, false]
+playTo: target end=[label, time, l+n, t+n] anim=[true, false] # l+2 means play next two labels
+                                                              # t+2 means play for 2 seconds
+                                                              # Without animation, it can be used to go to a point
+                                                              # loop???
+                                                              # target can be navigation, then is current slide animation
 pause: target
 
 goView: target view=[name, +/-n] # +1 means next slide. Full view??

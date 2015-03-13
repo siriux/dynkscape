@@ -1,84 +1,37 @@
-class ActionContext
-  constructor: () ->
-    @time = 0
-    @target = null
-    @duration = null
-    @easing = null
-    @center = null
+class ActionDesc
 
-  fillDefaults: (defs) =>
-    if not @duration?
-      if defs?.duration?
-        @duration = defs.duration
-      else
-        @duration = 1000
+  @register: (a) ->
 
-    if not @easing?
-      if defs?.easing?
-        @easing = defs.easing
-      else
-        @easing = "linear"
+    # TODO
 
-    if not @center?
-      if defs?.center?
-        @center = defs.center
-      else
-        @center = [0.5, 0.5]
+    Action.descs[a.name] =
+      init: a.init
+      processPositionals: null
 
-  clone: () ->
-    ctx = new ActionContext()
-    ctx.time = @time
-    ctx.target = @target
-    ctx.duration = @duration
-    ctx.easing = @easing
-    if @center?
-      ctx.center = [@center[0], @center[1]]
-    ctx
+      toLongNames: null
 
-  @compare: (a, b) ->
-    if a.time != b.time
-      a.time - b.time
-    else if a.target != b.target
-      stringCmp(a.target.fullName, b.target.fullName)
-    else if a.duration != b.duration
-      a.duration - b.duration
-    else if a.easing != b.easing
-      stringCmp(a.easing, b.easing)
-    else
-      stringCmp(a.center.toString(), b.center.toString()) # Quick & Dirty, xD
+      setDefaults: null
+
+      singleStart: null
+
+      singleEnd: null
 
 class Action
 
-  # Represents an action that can be performed agains a State
+  @actionNames: []
 
-  constructor: (ctx) ->
-    @context = ctx
+  @descs: {}
 
-  merge: (a) =>
-    if a.translateX?
-      @translateX = a.translateX
+  constructor: (@name, @vars) ->
+    @time = @vars.time
+    @desc = Action.descs[@name]
+    @desc.init?(@vars) # It can modify or define new vars
 
-    if a.translateY?
-      @translateY = a.translateY
+  singleStart: () => @desc.singleStart?(@vars)
 
-    if a.scaleX?
-      @scaleX = a.scaleX
+  singleEnd: () => @desc.singleEnd?(@vars)
 
-    if a.scaleY?
-      @scaleY = a.scaleY
-
-    if a.rotation?
-      @rotation = a.rotation
-
-    if a.opacity?
-      @opacity = a.opacity
-
-  applyTo: (state, time) =>
-
-    # If state center is not the right one, change it before applying
-    if state.center[0] != @context.center[0] or state.center[1] != @context.center[1]
-      state.changeCenter(@context.center)
-
+  exec: (time) =>
     offset = time - @context.time
     rawDelta = Math.min(Math.max(offset / @context.duration, 0), 1)
 
@@ -86,6 +39,32 @@ class Action
       delta = getEasing(@context.easing)(rawDelta)
     else
       delta = rawDelta
+
+    # TODO Calculate if the action has ended
+
+    # TODO
+    # We have to handle state clonning in the action, if needed.
+    # For Action objects, use provisional and current.
+    # Apply the action to current if ended.
+    # Keep track of provisionals (argument?) and make sure they are applied !!!!
+
+ActionDesc.register
+  name: "foo"
+  init: (vars) ->
+    vars.duration = 0 # Here we can force duration for external actions
+  arguments: [
+    ["translateX", "tx"]  # Name, short and optionally default
+    ["scale", null, 3]    # If short is missing, but want default
+    "rotate"              # Only long name without default
+  ]
+  defaultContext:
+    duration: 1.5
+  exec: (vars, delta, rawDelta, last) ->
+
+    ###
+    # If state center is not the right one, change it before applying
+    if state.center[0] != @context.center[0] or state.center[1] != @context.center[1]
+      state.changeCenter(@context.center)
 
     if @translateX?
       state.translateX += @translateX * delta
@@ -109,3 +88,4 @@ class Action
 
     if @effect?
       applyEffect(@effect, this, state, delta, rawDelta)
+    ###
