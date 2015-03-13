@@ -71,16 +71,13 @@ class AnimationObject
         x: box.x - s.translateX
         y: box.y - s.translateY
 
-      # Add clipPath
-      clip = Snap(svgElement("clipPath"))
-      use = Snap(svgElement("use"))
-
+      # Add clip
       oe = Snap(@origElement)
       oe.attr(id: oe.id)
+      use = Snap(svgElement("use"))
       use.attr("xlink:href": oe.id)
 
-      clip.append(use)
-      clip.attr(id: clip.id)
+      clip = createClip(use)
       group.append(clip)
 
   init: () =>
@@ -88,9 +85,7 @@ class AnimationObject
     animsMeta = @animations
     @animations = {}
     for name, meta of animsMeta
-      console.log JSON.stringify(meta, null, 2)
-      a = new Animation(meta, @fullName) # current namespace is the object fullName
-      console.log a
+      a = new Animation(meta, @fullName) # Current namespace is the object fullName
       @animations[a.name] = a # TODO put it on Animation.byFullName
 
   setBase: (state) =>

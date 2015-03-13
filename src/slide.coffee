@@ -29,7 +29,7 @@ class Slide extends AnimationObject
 
   init: () =>
     super()
-    @slideAnimation = Animation.byFullName[@fullname + ".slide"]
+    @slideAnimation = Animation.byFullName[@fullName + ".slide"]
     @navigation = AnimationObject.byFullName[@namespace]
 
     @navigation.slideList[@index] = this

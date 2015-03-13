@@ -29,6 +29,16 @@ $(window).resize(updateWindowDimensions)
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
+createClip = (path) ->
+  clip = Snap(svgElement("clipPath"))
+  clip.append(path)
+  clip.attr(id: clip.id)
+  clip
+
+applyClip = (element, clip) ->
+  Snap(element).append(clip)
+  Snap(element).attr("clip-path": "url(##{clip.id})")
+
 localMatrix = (element) ->
   m = null
   bv = element.transform.baseVal

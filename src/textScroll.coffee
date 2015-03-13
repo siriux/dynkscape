@@ -5,37 +5,24 @@ class TextScroll extends AnimationObject
 
     flowRoot = $(@element).find("flowRoot")[0]
 
+    flowRect = Snap(flowRoot).select("flowRegion > rect")
+
+    flowRect.attr(transform: $(flowRoot).attr("transform"))
+
+    flowWidth = parseFloat(flowRect.attr("width")) or 0
+    flowHeight = parseFloat(flowRect.attr("height")) or 0
+
     @scroll = 0
-
-    # Viewport
-
-    @viewport = sSvg.g()
-
-    rect = Snap(flowRoot).select("flowRegion > rect")
-
-    @_viewportWidth = rect.attr("width")
-    @_viewportHeight = rect.attr("height")
-
-    rect.attr(transform: $(flowRoot).attr("transform"))
-
-    clip = Snap(svgElement("clipPath"))
-    clipRect = rect.clone()
-    clip.append(clipRect)
-    clip.attr(id: clip.id)
-    @viewport.append(clip)
-    @viewport.attr("clip-path": "url(##{clip.id})")
-
-    $(flowRoot).replaceWith(@viewport.node)
 
     # ForeignObject
 
     @container = Snap(svgElement("foreignObject"))
 
     @container.attr
-      width: @_viewportWidth
-      height: @_viewportHeight # Provide temporal height to allow real calculations inside
+      width: flowWidth
+      height: flowHeight # Provide temporal height to allow real calculations inside
 
-    @viewport.append(@container)
+    @viewport = new ScrollTextViewport(flowRoot, flowRect, @container)
 
     # TODO Add visual hints to scroll (shadows at the top/bottom?)
 
@@ -59,7 +46,7 @@ class TextScroll extends AnimationObject
 
     @textContent
       .css
-        width: @_viewportWidth - padding*2 # Set the width, so that paragraphs can expand
+        width: flowWidth - padding*2 # Set the width, so that paragraphs can expand
         padding: "#{padding}px"
         "text-align": align
       .html(rederedText)
@@ -71,14 +58,7 @@ class TextScroll extends AnimationObject
     containerHeight = @textContent.height() + padding*2
     @container.attr(height: containerHeight)
 
-    @maxScroll = Math.max(0, containerHeight - @_viewportHeight)
-
-    # Raw, it's internal object
-    @animationObject = new AnimationObject(@container.node, {}, @_viewportWidth, containerHeight, true)
-    base = State.fromMatrix(localMatrix(rect.node))
-    base.translateX += parseFloat(rect.attr("x")) or 0
-    base.translateY += parseFloat(rect.attr("y")) or 0
-    @animationObject.setBase(base)
+    @viewport.recalculate()
 
     # Scroll
 
@@ -97,15 +77,17 @@ class TextScroll extends AnimationObject
 
     @textContent
       .mousemove (e) =>
-        # TODO Adapt scaleFactor to rotation !!!
-        # TODO See how it's done for Navigation and Viewport
-        scaleFactor = matrixScaleY(globalMatrix(@viewport.node))
-
-        prevY ?= e.clientY
-
         if dragging
+          # TODO Adapt scaleFactor to rotation !!!
+          # TODO See how it's done for Navigation and NavigationViewport
+          scaleFactor = matrixScaleY(globalMatrix(@viewport.element))
+          
+          prevY ?= e.clientY
+
           delta = (e.clientY - prevY) / scaleFactor
+
           prevY = e.clientY
+
           @updateScroll(-delta)
           false
       .mousedown (e) =>
@@ -130,26 +112,10 @@ class TextScroll extends AnimationObject
 
     @textContent.css(position: "static") # Revert to default
 
-  init: () =>
-    # TODO
-    super()
-
   setScroll: (s) =>
-    if s < 0
-      @scroll = 0
-    else if s > @maxScroll
-      @scroll = @maxScroll
-    else
-      @scroll = s
+    @viewport.setScroll(s)
 
-    state = @animationObject.baseState.clone()
-
-    state.translateY -= @scroll
-
-    @animationObject.currentState = state
-    @animationObject.applyCurrent()
-
-  updateScroll: (delta) => @setScroll(@scroll + delta)
+  updateScroll: (delta) => @viewport.updateScroll(delta)
 
   goToAnchor: (name) =>
     # TODO Animation?

@@ -188,8 +188,8 @@ class Animation
     @labels.unshift(name: "start", time: 0) # Add start label
     @labels.push(name: "end", time: @duration) # Add end label
 
-    @fullname = if @namespace != "" then @namespace + "." + @name else @name
-    Animation.byFullName[@fullname] = this
+    @fullName = if @namespace != "" then @namespace + "." + @name else @name
+    Animation.byFullName[@fullName] = this
 
     @goStart()
 

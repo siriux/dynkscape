@@ -16,7 +16,7 @@ class Navigation extends AnimationObject
       super(element, meta)
       viewportEl = $(@element).find(".viewport")[0]
 
-    @viewport = new Viewport(layer, viewportEl)
+    @viewport = new NavigationViewport(layer, viewportEl)
 
     @slideList = []
 
@@ -53,12 +53,6 @@ class Navigation extends AnimationObject
       @goTo(@start, true) # Go skipping animation
     else
       @_setCurrentSlide(null)
-
-    # Full View
-    @fullView = new AnimationObject(@viewport.element, {}, 0, 0, true)
-    @fullView.viewState = @viewport.state.clone()
-    @fullView.duration = 1000
-    @fullView.easing = "inout"
 
   _setLock: (isLocked) =>
     @lock = isLocked
@@ -187,7 +181,7 @@ class Navigation extends AnimationObject
       dragging = false
       panning = false
 
-    $(@viewport.element)
+    $(@viewport.clipElement)
       .mousemove (e) =>
         if not @lock
           if e.ctrlKey
@@ -257,70 +251,14 @@ class Navigation extends AnimationObject
 
           false # Avoid zooming on windows if ctrl is pressed
 
-  getStateForMaximizedView: (view, centerPage = true) =>
-    s = view.viewState.diff(@viewport.state)
-    s.animationObject = @viewport.animationObject
-
-    # Modify rotate point to be the current translate (corner of the viewport)
-    cx = (@viewport.state.translateX - s.translateX) / svgPageWidth
-    cy = (@viewport.state.translateY - s.translateY) / svgPageHeight
-    s.center = [cx, cy]
-
-    # Get scale factors needed to fit viewport in either direction
-    viewportWidth =
-      if @viewport.isMain
-        svgPageCorrectedWidth
-      else
-        @viewport.width
-    viewportHeight =
-      if @viewport.isMain
-        svgPageCorrectedHeight
-      else
-        @viewport.height
-
-    viewportProportions = viewportWidth / viewportHeight
-
-    scaleHorizontal = viewportWidth / view.width
-    scaleVertical = viewportHeight / view.height
-
-    scaleFactor = null # Final scale factor
-    tx = 0
-    ty = 0
-
-    if scaleHorizontal > scaleVertical
-      scaleFactor = scaleVertical
-      # Center horizontally on viewport
-      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * @viewport.state.scaleX / 2
-    else
-      scaleFactor = scaleHorizontal
-      # Center vertically on viewport
-      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * @viewport.state.scaleY / 2
-
-    if @viewport.isMain and centerPage
-      # Correct page centering on the viewport
-      if svgProportions > viewportProportions
-        ty -= ((viewportHeight - (viewportWidth / svgProportions)) / 2)
-      else
-        tx -= ((viewportWidth - (viewportHeight * svgProportions)) / 2)
-
-    s.translateX += tx
-    s.translateY += ty
-
-    s.scaleX *= scaleFactor
-    s.scaleY *= scaleFactor
-
-    s
-
   goToView: (view, skipAnimation = false, centerPage = true) =>
-    dest = @getStateForMaximizedView(view, centerPage)
-
-    ao = @viewport.animationObject
+    dest = @viewport.getStateForMaximizedView(view, centerPage)
 
     if (view.duration == 0 or skipAnimation)
-      ao.currentState = dest
-      ao.applyCurrent()
+      @viewport.currentState = dest
+      @viewport.applyCurrent()
     else
-      current = ao.currentState
+      current = @viewport.currentState
 
       # TODO Improve on real center of dest, instead of corner ??
       # Set center to have a more direct animation
@@ -347,12 +285,12 @@ class Navigation extends AnimationObject
 
       advanceTime = (delta) =>
         time += delta
-        ao.addProvisionalAction(a, time)
-        ao.applyProvisional()
+        @viewport.addProvisionalAction(a, time)
+        @viewport.applyProvisional()
 
       onEnd = () =>
-        ao.addAction(a, time)
-        ao.applyCurrent()
+        @viewport.addAction(a, time)
+        @viewport.applyCurrent()
         @animating = false
 
       ba = new BaseAnimation(view.duration, advanceTime, onEnd)
@@ -389,16 +327,9 @@ class Navigation extends AnimationObject
 
   goFull: () =>
     if not @animating
-      if @viewport.isMain
-        @fullView.width = svgPageCorrectedWidth
-        @fullView.height = svgPageCorrectedHeight
-      else
-        @fullView.width = @viewport.width
-        @fullView.height = @viewport.height
-
       @_setCurrentSlide(null)
 
-      @goToView(@fullView, false, false) # Don't skip animation, don't perform page centering
+      @goToView(@viewport.getFullView(), false, false) # Don't skip animation, don't perform page centering
 
   viewPlay: () =>
     s = @slideList[@currentView]
