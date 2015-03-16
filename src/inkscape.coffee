@@ -43,22 +43,16 @@ processDefaultInkscapeMetaDescs = () ->
   # Get metas and add classes
   metas = []
   processInkscapeMetaDescs document, (e, meta) ->
-    if meta.class?
-      classes = meta.class.split(" ")
-    else
-      classes = []
+    classes = meta.class ? ""
+    Snap(e).addClass("AnimationObject #{classes}")
 
-    classes.push("AnimationObject")
-
-    Snap(e).addClass(classes.join(" "))
-
-    metas.push([e, meta, classes])
+    metas.push([e, meta])
 
     aoIdx = metas.length - 1
     $(e).data("aoIdx", aoIdx)
 
   # Process __auto__ namespaces
-  for [e, meta, classes] in metas
+  for [e, meta] in metas
     if meta.namespace == "__auto__"
       parent = $(e).parent().closest(".AnimationObject")
       parentIdx = parent.data("aoIdx")
@@ -67,20 +61,14 @@ processDefaultInkscapeMetaDescs = () ->
       meta.namespace = AnimationObject.createFullName(parentMeta.namespace, parentMeta.name)
 
   # Create the AnimationObjects
-  for [e, meta, classes] in metas
-    if "Navigation" in classes
-      o = new Navigation(e, meta)
+  for [e, meta] in metas
+    ao = switch meta.type
+      when "Navigation" then new Navigation(e, meta)
+      when "Slide" then new Slide(e, meta)
+      when "TextScroll" then new TextScroll(e, meta)
+      else new AnimationObject(e, meta)
 
-    else if "Slide" in classes
-      o = new Slide(e, meta)
-
-    else if "TextScroll" in classes
-      o = new TextScroll(e, meta)
-
-    else
-      o = new AnimationObject(e, meta)
-
-    AnimationObject.objects.push(o)
+    AnimationObject.objects.push(ao)
 
   # Init all AnimationObjects
   for ao in AnimationObject.objects
