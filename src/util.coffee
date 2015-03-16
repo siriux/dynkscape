@@ -64,12 +64,24 @@ getObjectFromReference = (namespace, reference) ->
   if typeof reference is "string"
     c = reference.charAt(0)
     if c == "#" or c == "@" or c == "$"
-      # TODO Parse relative
-      name = reference[1..]
-      if namespace != ""
-        fullName = namespace + "." + name
+
+      path = if namespace != "" then namespace.split(".") else []
+
+      # Remove relative parent levels
+      if reference[1..2] == "*%"
+        path = []
+        parentLevels = 2
       else
-        fulName = name
+        parentLevels = 0
+        while reference.charAt(parentLevels + 1) == "%"
+          path.pop()
+          parentLevels += 1
+
+      name = reference[parentLevels+1..]
+      path.push(name)
+      fullName = path.join(".")
+
+      # TODO Force the use of *% and remove extra check below????
 
       switch c
         when "#"
