@@ -1,9 +1,7 @@
 class ActionDesc
 
   @register: (a) ->
-    Action.actionNames.add(a.name)
-
-    Action.descs[a.name] =
+    desc =
       init: a.init
       processPositionals: (side, vars) ->
         for arg in a.arguments
@@ -32,6 +30,14 @@ class ActionDesc
       singleEnd: a.singleEnd
 
       exec: a.exec
+
+    if a.name instanceof Array
+      for name in a.name
+        Action.descs[name] = desc
+        Action.actionNames.add(name)
+    else
+      Action.descs[a.name] = desc
+      Action.actionNames.add(a.name)
 
   @applyOnStateHelper: (target, last, f) ->
     f(target.getProvisional())

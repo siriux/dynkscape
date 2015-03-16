@@ -14,7 +14,7 @@ ActionDesc.register
 ###
 
 ActionDesc.register
-  name: "transform"
+  name: ["transform", "trf", "alter"] # TODO Think about a good one
 
   arguments: [
     ["translateX", "tx"]
