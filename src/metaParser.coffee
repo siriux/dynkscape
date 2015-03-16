@@ -102,7 +102,7 @@ class MetaParser
     value = $.trim(right)
 
     if value.length == 0
-      value = if key == "animations" or inAnimations then [] else {}
+      value = if key == "animations" or key == "rawAnimations" or inAnimations then [] else {}
       @_stack.push([indent, value])
     else if not inAnimations
       value = MetaParser._toValue(value)

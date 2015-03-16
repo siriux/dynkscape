@@ -38,6 +38,19 @@ class AnimationObject
     if @meta.raw?
       raw = @meta.raw
 
+    # Process animations
+    if @meta.animations?
+      @animations =
+        for name, animDesc of @meta.animations
+          name = animDesc[0].__positionals[0][1..]
+          new Animation(animDesc, @fullName, name) # Current namespace is the object fullName
+
+    # Process raw animations (wont be initialized, are just a template)
+    if @meta.rawAnimations?
+      for name, animDesc of @meta.rawAnimations
+        name = animDesc[0].__positionals[0][1..]
+        new Animation(animDesc, @fullName, name) # Current namespace is the object fullName
+
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
 
@@ -76,10 +89,10 @@ class AnimationObject
       @clip = createClip(use, group)
 
   init: () =>
-    # Process animations
-    if @meta.animations?
-      for name, animDesc of @meta.animations
-        new Animation(animDesc, @fullName) # Current namespace is the object fullName
+    # Init animations
+    if @animations?
+      for anim in @animations
+        anim.init()
 
     # Add clipping
     if @meta.clip?

@@ -2,185 +2,202 @@ class Animation
 
   @byFullName = {}
 
-  constructor: (animDesc, @namespace, @name) -> # @name is optional, it can be parsed from the desc
-
-    @actions = []
-    @targets = new Set()
-    @labels = []
-    @labelByName = {}
-    @duration = 0
-    @currentTime = 0
-    @currentActions = []
-    @nextAction = 0
-
-    peekNextPositional = (o) => o.__positionals?[0]
-    shiftNextPositional = (o) => o.__positionals?.shift()
-
-    processContextPositionals = (o, vars) =>
-      c = shiftNextPositional(o)
-      for action in ["target", "duration", "easing", "offset", "center", "namespace", "label"]
-        if c?
-          vars[action] = c
-          c = shiftNextPositional(o)
-        else
-          break
-
-    toLongContextNames = (vars) =>
-      if vars.d
-        vars.duration = vars.d
-        delete vars.d
-
-      if vars.e
-        vars.easing = vars.e
-        delete vars.e
-
-      if vars.o
-        vars.offset = vars.o
-        delete vars.o
-
-      if vars.c
-        vars.center = vars.c
-        delete vars.c
-
-      if vars.n
-        vars.namespace = vars.n
-        delete vars.n
-
-      if vars.l
-        vars.label = vars.l
-        delete vars.l
-
-    setContextDefaults = (vars) =>
-      vars.duration ?= 1
-      vars.easing ?= "linear"
-      vars.center ?= [0.5, 0.5]
-      vars.namespace ?= ""
-
-    getReferences = (vars) =>
-      namespace = vars.namespace
-      for name, value of vars
-        if typeof value is "string"
-          # Try to convert it as if it were a reference
-          ao = getObjectFromReference(namespace, value)
-          if ao?
-            vars[name] = ao
-
-            if name == "target"
-              @targets.add(ao)
-
-    process = (l, r, vars) =>
-      parallel = true
-
-      c = peekNextPositional(l)
-
-      # Process step type
-      if c == "-"
-        parallel = false
-        shiftNextPositional(l)
-      else if c == "/"
-        shiftNextPositional(l)
-      else if c.charAt(0) == "@"
-        parallel = false
-        @name = c[1..]
-        shiftNextPositional(l)
-
-      # Process action
-      c = peekNextPositional(l)
-      if Action.actionNames.has(c)
-        action = c
-        shiftNextPositional(l)
-
-      # Process left context positionals
-      processContextPositionals(l, vars)
-
-      # Add right named to vars
-      delete l.__positionals
-      $.extend(vars, l)
-
-      originalTime = vars.time
-      currentEnd = vars.time
-
-      if action?
-        actionDesc = Action.descs[action]
-
-        # Process right action positionals
-        actionDesc.processPositionals(r, vars)
-
-        # Process right context positionals
-        processContextPositionals(r, vars)
-
-        # Add right named to vars
-        delete r.__positionals
-        $.extend(vars, r)
-
-        # Transform to long names
-        actionDesc.toLongNames(vars)
-        toLongContextNames(vars)
-
-        # Add defaults on missing
-        actionDesc.setDefaults(vars)
-        setContextDefaults(vars)
-
-        # Process offset
-        vars.time += vars.offset or 0
-
-        # Get references to AO, Animations and Variables
-        getReferences(vars)
-
-        # Create action on @actions
-        @actions.push new Action(action, vars)
-
-        # Update currentEnd
-        currentEnd = vars.time + vars.duration
-      else
-        # Process offset
-        currentEnd += vars.offset or vars.o or 0
-        delete vars.offset
-        delete vars.o
-
-        # Get references to AO, Animations and Variables
-        getReferences(vars)
-
-        # Process children
-        if r instanceof Array
-          childrenEnd = currentEnd
-          for c in r
-            newVars = $.extend({}, vars)
-            newVars.time = currentEnd
-            [end, para] = process(c[0], c[1], newVars)
-
-            if para
-              childrenEnd = Math.max(childrenEnd, end)
-            else
-              currentEnd = end
-              childrenEnd = end
-
-          currentEnd = childrenEnd
-
-      # Label
-      if vars.label?
-        l =
-          name: vars.label
-          time: vars.time
-        @labels.push l
-        @labelByName[vars.label] = l
-
-
-      [currentEnd, parallel]
-
-    [@duration, parallel] = process(animDesc[0], animDesc[1], (time: 0, namespace: @namespace), null)
-
-    # Sort actions and labels
-    @actions.sort((a, b) => a.time - b.time)
-
-    @labels.sort((a, b) => a.time - b.time)
-    @labels.unshift(name: "start", time: 0) # Add start label
-    @labels.push(name: "end", time: @duration) # Add end label
-
+  constructor: (@animDesc, @namespace, @name) -> # @name is optional, it can be parsed from the desc
     @fullName = if @namespace != "" then @namespace + "." + @name else @name
     Animation.byFullName[@fullName] = this
 
-    @goStart()
+  init: () =>
+    if not @actions?
+      @actions = []
+      @targets = new Set()
+      @labels = []
+      @labelByName = {}
+      @duration = 0
+      @currentTime = 0
+      @currentActions = []
+      @nextAction = 0
+
+      peekNextPositional = (o) => o.__positionals?[0]
+      shiftNextPositional = (o) => o.__positionals?.shift()
+
+      processContextPositionals = (o, vars) =>
+        c = shiftNextPositional(o)
+        for action in ["target", "duration", "easing", "offset", "center", "namespace", "label"]
+          if c?
+            vars[action] = c
+            c = shiftNextPositional(o)
+          else
+            break
+
+      toLongContextNames = (vars) =>
+        if vars.d
+          vars.duration = vars.d
+          delete vars.d
+
+        if vars.e
+          vars.easing = vars.e
+          delete vars.e
+
+        if vars.o
+          vars.offset = vars.o
+          delete vars.o
+
+        if vars.c
+          vars.center = vars.c
+          delete vars.c
+
+        if vars.n
+          vars.namespace = vars.n
+          delete vars.n
+
+        if vars.l
+          vars.label = vars.l
+          delete vars.l
+
+      setContextDefaults = (vars) =>
+        vars.duration ?= 1
+        vars.easing ?= "linear"
+        vars.center ?= [0.5, 0.5]
+        vars.namespace ?= ""
+
+      getReferences = (vars) =>
+        namespace = vars.namespace
+        for name, value of vars
+          if typeof value is "string"
+            # Try to convert it as if it were a reference
+            ao = getObjectFromReference(namespace, value)
+            if ao?
+              vars[name] = ao
+
+              if name == "target"
+                @targets.add(ao)
+
+      process = (l, r, vars) =>
+        parallel = true
+
+        c = peekNextPositional(l)
+
+        # Process step type
+        if c == "-"
+          parallel = false
+          shiftNextPositional(l)
+        else if c == "/" or c.charAt(0) == "@"
+          shiftNextPositional(l)
+
+        # Include raw animation
+        c = peekNextPositional(l)
+        if c == "includeRawAnim"
+          anim = getObjectFromReference(vars.namespace, r.__positionals[0])
+          # Replace current left and right with the desc of the reference
+          [l, r] = anim.animDesc
+          shiftNextPositional(l)
+        else if c == "includeAnim"
+          anim = getObjectFromReference(vars.namespace, r.__positionals[0])
+          anim.init()
+
+          # Add all the actions, but transform time
+          currentEnd = vars.time
+          for a in anim.actions
+            newVars = $.extend({}, a.vars)
+            newVars.time += vars.time # Apply current offset to the action
+            @actions.push new Action(a.name, newVars)
+            currentEnd = Math.max(currentEnd, newVars.time + newVars.duration)
+          return [currentEnd, parallel]
+
+        # Process action
+        c = peekNextPositional(l)
+        if Action.actionNames.has(c)
+          action = c
+          shiftNextPositional(l)
+
+        # Process left context positionals
+        processContextPositionals(l, vars)
+
+        # Add right named to vars
+        delete l.__positionals
+        $.extend(vars, l)
+
+        originalTime = vars.time
+        currentEnd = vars.time
+
+        if action?
+          actionDesc = Action.descs[action]
+
+          # Process right action positionals
+          actionDesc.processPositionals(r, vars)
+
+          # Process right context positionals
+          processContextPositionals(r, vars)
+
+          # Add right named to vars
+          delete r.__positionals
+          $.extend(vars, r)
+
+          # Transform to long names
+          actionDesc.toLongNames(vars)
+          toLongContextNames(vars)
+
+          # Add defaults on missing
+          actionDesc.setDefaults(vars)
+          setContextDefaults(vars)
+
+          # Process offset
+          vars.time += vars.offset or 0
+
+          # Get references to AO, Animations and Variables
+          getReferences(vars)
+
+          # Create action on @actions
+          @actions.push new Action(action, vars)
+
+          # Update currentEnd
+          currentEnd = vars.time + vars.duration
+        else
+          # Process offset
+          currentEnd += vars.offset or vars.o or 0
+          delete vars.offset
+          delete vars.o
+
+          # Get references to AO, Animations and Variables
+          getReferences(vars)
+
+          # Process children
+          if r instanceof Array
+            childrenEnd = currentEnd
+            for c in r
+              newVars = $.extend({}, vars)
+              newVars.time = currentEnd
+              [end, para] = process(c[0], c[1], newVars)
+
+              if para
+                childrenEnd = Math.max(childrenEnd, end)
+              else
+                currentEnd = end
+                childrenEnd = end
+
+            currentEnd = childrenEnd
+
+        # Label
+        if vars.label?
+          l =
+            name: vars.label
+            time: vars.time
+          @labels.push l
+          @labelByName[vars.label] = l
+
+
+        [currentEnd, parallel]
+
+      [@duration, parallel] = process(@animDesc[0], @animDesc[1], (time: 0, namespace: @namespace), null)
+
+      # Sort actions and labels
+      @actions.sort((a, b) => a.time - b.time)
+
+      @labels.sort((a, b) => a.time - b.time)
+      @labels.unshift(name: "start", time: 0) # Add start label
+      @labels.push(name: "end", time: @duration) # Add end label
+
+      @goStart()
 
   _play: (length, onEnd) =>
     aT = (delta) => @advanceTime(delta, true)

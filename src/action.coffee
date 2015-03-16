@@ -38,7 +38,7 @@ class ActionDesc
 
     if last
       f(target.currentState)
-      
+
     target
 
 class Action
