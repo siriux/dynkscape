@@ -2,9 +2,10 @@ class Animation
 
   @byFullName = {}
 
-  constructor: (@animDesc, @namespace, @name) -> # @name is optional, it can be parsed from the desc
+  constructor: (@animDesc, @namespace, @name) ->
     @fullName = if @namespace != "" then @namespace + "." + @name else @name
-    Animation.byFullName[@fullName] = this
+    if @name?
+      Animation.byFullName[@fullName] = this
 
   init: () =>
     if not @actions?

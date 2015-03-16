@@ -34,8 +34,33 @@ class TextScroll extends AnimationObject
 
     rederedText =
       if meta.textScroll.process == "markdown"
-        # TODO Process links if needed
-        marked(rawText)
+
+        # Process links
+        @animations ?= []
+        renderer = new marked.Renderer()
+        animCount = 0
+        renderer.link = (href, title, text) =>
+          title ?= ""
+
+          if href.charAt(0) == "@"
+            animDesc = MetaParser.parseAnimation(href)[0]
+            name = animDesc[0].__positionals[0][1..]
+            if name == ""
+              name = "link#{animCount}"
+            a = new Animation(animDesc, @fullname, name)
+            @animations.push a
+            animCount += 1
+            """
+            <span
+              style=\"font-weight: bold; cursor: pointer; text-decoration: underline\"
+              title=\"#{title}\"
+              onclick=\"Animation.byFullName['#{a.fullName}'].play()\"
+            >#{text}</span>
+            """
+          else
+            "<a href=\"#{href}\" target=\"_blank\" title=\"#{title}\">#{text}</a>"
+
+        marked(rawText, renderer: renderer)
       else
         rawText
 
@@ -81,7 +106,7 @@ class TextScroll extends AnimationObject
           # TODO Adapt scaleFactor to rotation !!!
           # TODO See how it's done for Navigation and NavigationViewport
           scaleFactor = matrixScaleY(globalMatrix(@viewport.element))
-          
+
           prevY ?= e.clientY
 
           delta = (e.clientY - prevY) / scaleFactor
