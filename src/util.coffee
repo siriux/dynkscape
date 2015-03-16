@@ -61,22 +61,26 @@ matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
 getObjectFromReference = (namespace, reference) ->
-  c = reference.charAt(0)
-  if c == "#" or c == "@" or c == "$"
-    # TODO Parse relative
-    name = reference[1..]
-    if namespace != ""
-      fullName = namespace + "." + name
-    else
-      fulName = name
+  if typeof reference is "string"
+    c = reference.charAt(0)
+    if c == "#" or c == "@" or c == "$"
+      # TODO Parse relative
+      name = reference[1..]
+      if namespace != ""
+        fullName = namespace + "." + name
+      else
+        fulName = name
 
-    switch c
-      when "#"
-        ao = AnimationObject.byFullName[fullName]
-        if ao? then ao else AnimationObject.byFullName[name]
-      when "@"
-        anim = Animation.byFullName[fullName]
-        if anim? then anim else Animation.byFullName[name]
+      switch c
+        when "#"
+          ao = AnimationObject.byFullName[fullName]
+          if ao? then ao else AnimationObject.byFullName[name]
+        when "@"
+          anim = Animation.byFullName[fullName]
+          if anim? then anim else Animation.byFullName[name]
+        when "$"
+          v = AnimationObject.variablesByFullName[fullName]
+          if v? then v else AnimationObject.variablesByFullName[name]
 
 stringCmp = (a, b) ->
   if a < b

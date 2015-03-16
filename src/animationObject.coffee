@@ -1,6 +1,7 @@
 class AnimationObject
 
   @byFullName = {}
+  @variablesByFullName = {}
   @objects = []
 
   @createFullName: (namespace, name) ->
@@ -37,6 +38,12 @@ class AnimationObject
 
     if @meta.raw?
       raw = @meta.raw
+
+    # Process variables
+    if @meta.variables?
+      for varName, value of @meta.variables
+        varFullName = AnimationObject.createFullName(@fullName, varName) # Current namespace is the object fullName
+        AnimationObject.variablesByFullName[varFullName] = value
 
     # Process animations
     if @meta.animations?

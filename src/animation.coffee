@@ -63,14 +63,22 @@ class Animation
       getReferences = (vars) =>
         namespace = vars.namespace
         for name, value of vars
-          if typeof value is "string"
-            # Try to convert it as if it were a reference
-            ao = getObjectFromReference(namespace, value)
-            if ao?
-              vars[name] = ao
+
+            # Deref using context vars
+            if typeof value is "string" and value.charAt(0) == "$" and vars[value[1..]]?
+               value = vars[value[1..]]
+
+            # Deref as much as it can, to allow nested variables
+            loop
+              dref = getObjectFromReference(namespace, value)
+              break if not dref?
+              value = dref
+
+            if value?
+              vars[name] = value
 
               if name == "target"
-                @targets.add(ao)
+                @targets.add(value)
 
       process = (l, r, vars) =>
         parallel = true
