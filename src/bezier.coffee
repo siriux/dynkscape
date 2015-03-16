@@ -16,11 +16,10 @@ class Bezier
 
     bc0*a + bc1*b + bc2*c + bc3*d
 
-  constructor: (path, first, last) ->
+  constructor: (path, @N = 16) -> # N is the number of points to take in each curve to make the animation uniform
 
     # TODO This has to be done in both ways to be usefull
     # For now, this cannot be used on objects inside transformed groups
-
     # Transforms the path using the matrix,
     #transformedPath = Snap.path.map(path, matrix).toString()
 
@@ -31,17 +30,12 @@ class Bezier
     pathComponents = Snap.path.toRelative(cubicPath)
     pathComponents.shift() # Remove the relative initial move
 
-    N = 16 # Number of points to take in each curve to make the animation uniform
     current = (x: 0, y: 0)
     prev = (x: 0, y: 0)
 
     @totalLength = 0
     @lengthIndex = [] # Lengths on the whole curve
-    @curveIndex = [] # Double elements of lengthIndex, corresponding bezier curve and delta
-
-    # Take only the requested components
-    if first? and last?
-      pathComponents = pathComponents[first...last]
+    @curveIndex = [] # Double elements of lengthIndex, corresponding bezier curve and pos
 
     # Preprocess all the bezier curves
     for c in pathComponents
@@ -53,10 +47,10 @@ class Bezier
       ]
 
       # Sample the curve on N points to calculate lengths
-      for i in [0...16]
-        delta = i / (N-1)
-        x = Bezier.cubicBezierPosition(bzr[0], bzr[2], bzr[4], bzr[6], delta)
-        y = Bezier.cubicBezierPosition(bzr[1], bzr[3], bzr[5], bzr[7], delta)
+      for i in [0...@N]
+        pos = i / (@N-1)
+        x = Bezier.cubicBezierPosition(bzr[0], bzr[2], bzr[4], bzr[6], pos)
+        y = Bezier.cubicBezierPosition(bzr[1], bzr[3], bzr[5], bzr[7], pos)
 
         dx = x - prev.x
         dy = y - prev.y
@@ -65,7 +59,7 @@ class Bezier
 
         @lengthIndex.push(@totalLength)
         @curveIndex.push(bzr)
-        @curveIndex.push(delta)
+        @curveIndex.push(pos)
 
         prev.x = x
         prev.y = y
@@ -73,30 +67,36 @@ class Bezier
       current.x = bzr[6]
       current.y = bzr[7]
 
-    @lengthIndex = @lengthIndex.map (e) => e / @totalLength # Normalize lengths
+  getRangeInfo: (range) =>
+    start = @lengthIndex[@N * range[0]]
+    end = @lengthIndex[@N * range[1]] ? @totalLength
 
-  getPoint: (delta) =>
+    offset: start
+    length: end - start
+    base: @getPoint(start)
+
+  getPoint: (pos) =>
 
     # Find entry in index
     i = 0
     lI = @lengthIndex
-    i++ while lI[i] < delta
+    i++ while lI[i] < pos
 
     bzr = @curveIndex[2*i]
-    bzrDelta = @curveIndex[2*i + 1]
+    bzrPos = @curveIndex[2*i + 1]
 
-    # If it's not the exact delta, interpolate
-    if lI[i] > delta
-      nextDelta = @lengthIndex[i]
-      prevDelta =  @lengthIndex[i-1]
-      interpolateRatio = (delta - prevDelta) / (nextDelta - prevDelta)
+    # If it's not the exact pos, interpolate
+    if lI[i] > pos
+      nextPos = @lengthIndex[i]
+      prevPos =  @lengthIndex[i-1]
+      interpolateRatio = (pos - prevPos) / (nextPos - prevPos)
 
       if @curveIndex[2*(i-1)] != bzr # If prev is a different curve
-        prevBzrDelta = 0
+        prevBzrPos = 0
       else
-        prevBzrDelta = @curveIndex[2*(i-1) + 1]
+        prevBzrPos = @curveIndex[2*(i-1) + 1]
 
-      bzrDelta = interpolateRatio * (bzrDelta - prevBzrDelta) + prevBzrDelta
+      bzrPos = interpolateRatio * (bzrPos - prevBzrPos) + prevBzrPos
 
-    x: Bezier.cubicBezierPosition(bzr[0], bzr[2], bzr[4], bzr[6], bzrDelta)
-    y: Bezier.cubicBezierPosition(bzr[1], bzr[3], bzr[5], bzr[7], bzrDelta)
+    x: Bezier.cubicBezierPosition(bzr[0], bzr[2], bzr[4], bzr[6], bzrPos)
+    y: Bezier.cubicBezierPosition(bzr[1], bzr[3], bzr[5], bzr[7], bzrPos)

@@ -28,21 +28,12 @@ ActionDesc.register
   ]
 
   init: (vars) ->
-    if vars.path
-      sp = Snap(vars.path.element)
-      path =
-       if sp.hasClass("translatePath")
-         sp
-       else
-         sp.select(".translatePath")
-
-      if (vars.range?)
+    if vars.path?
+      if vars.range?
         range = vars.range.split(",")
-        first = parseInt(range[0])
-        last = parseInt(range[1])
-
-      pathString = path.attr("d")
-      vars.bezierPath = new Bezier(pathString, first, last)
+        vars.pathRangeInfo = vars.path.getRangeInfo([parseInt(range[0]),parseInt(range[1])])
+      else
+        vars.pathRangeInfo = vars.path.wholeRangeInfo()
 
   exec: (vars, delta, rawDelta, last) ->
 
@@ -69,10 +60,11 @@ ActionDesc.register
       if vars.rotate?
         state.rotation += vars.rotate * delta
 
-      if vars.bezierPath?
-        p = vars.bezierPath.getPoint(delta)
-        state.translateX += p.x
-        state.translateY += p.y
+      if vars.path?
+        t = vars.path.getTransform(delta, vars.pathRangeInfo)
+        state.translateX += t.x
+        state.translateY += t.y
+        # TODO rotate and scale
 
 ActionDesc.register
   name: "hide"

@@ -66,6 +66,7 @@ processDefaultInkscapeMetaDescs = () ->
       when "Navigation" then new Navigation(e, meta)
       when "Slide" then new Slide(e, meta)
       when "TextScroll" then new TextScroll(e, meta)
+      when "Path" then new Path(e, meta)
       else new AnimationObject(e, meta)
 
     AnimationObject.objects.push(ao)
