@@ -60,14 +60,13 @@ class Animation
       namespace = vars.namespace
       for name, value of vars
         if typeof value is "string"
-          switch value.charAt(0)
-            when "#"
-              # TODO Parse relative and try raw
-              ao = AnimationObject.byFullName[namespace + "." + value[1..]]
-              vars[name] = ao
-              if name == "target"
-                @targets.add(ao)
-            # TODO Animations and variables
+          # Try to convert it as if it were a reference
+          ao = getObjectFromReference(namespace, value)
+          if ao?
+            vars[name] = ao
+
+            if name == "target"
+              @targets.add(ao)
 
     process = (l, r, vars) =>
       parallel = true

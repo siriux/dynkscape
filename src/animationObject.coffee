@@ -9,15 +9,11 @@ class AnimationObject
     else
       name
 
-  constructor: (@element, meta, w, h, raw = false) ->
-    @namespace = meta.namespace ? ""
-    @name = meta.name
+  constructor: (@element, @meta, w, h, raw = false) ->
+    @namespace = @meta.namespace ? ""
+    @name = @meta.name
 
     @fullName = AnimationObject.createFullName(@namespace, @name)
-
-    # Animations
-    if (meta.animations?)
-      @animations = meta.animations
 
     se = Snap(@element)
     box = se.getBBox()
@@ -39,8 +35,8 @@ class AnimationObject
     if @name? # Ignore anonymous animation objects
       AnimationObject.byFullName[@fullName] = this
 
-    if meta.raw?
-      raw = meta.raw
+    if @meta.raw?
+      raw = @meta.raw
 
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
@@ -75,18 +71,21 @@ class AnimationObject
       oe = Snap(@origElement)
       oe.attr(id: oe.id)
       use = Snap(svgElement("use"))
-      use.attr("xlink:href": oe.id)
+      use.attr("xlink:href": "##{oe.id}")
 
-      clip = createClip(use)
-      group.append(clip)
+      @clip = createClip(use, group)
 
   init: () =>
-    # Process meta animations
-    animsMeta = @animations
-    @animations = {}
-    for name, meta of animsMeta
-      a = new Animation(meta, @fullName) # Current namespace is the object fullName
-      @animations[a.name] = a # TODO put it on Animation.byFullName
+    # Process animations
+    if @meta.animations?
+      for name, animDesc of @meta.animations
+        new Animation(animDesc, @fullName) # Current namespace is the object fullName
+
+    # Add clipping
+    if @meta.clip?
+      o = getObjectFromReference(@namespace, @meta.clip)
+      if o?.clip?
+        applyClip(@element, o.clip)
 
   setBase: (state) =>
     state.animationObject = this

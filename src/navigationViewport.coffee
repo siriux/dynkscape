@@ -27,7 +27,7 @@ class NavigationViewport  extends AnimationObject
 
       # Clip the layer to the viewport
       clipRect = bg.clone()
-      clip = createClip(clipRect)
+      clip = createClip(clipRect, snapViewport)
       applyClip(snapViewport, clip)
 
       @isMain = false
@@ -125,7 +125,7 @@ class NavigationViewport  extends AnimationObject
 
   _getCenterPoint: (p) =>
     if not @isMain
-      p = Viewport.main.currentState.transformPointInverse(p)
+      p = NavigationViewport.main.currentState.transformPointInverse(p)
 
     p = @currentState.transformPointInverse(p)
 
@@ -139,7 +139,7 @@ class NavigationViewport  extends AnimationObject
       y: y
 
     if not @isMain
-      p = Viewport.main.currentState.scaleRotatePointInverse(p)
+      p = NavigationViewport.main.currentState.scaleRotatePointInverse(p)
 
     s = @currentState
     s.translateX += p.x

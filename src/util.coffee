@@ -29,15 +29,15 @@ $(window).resize(updateWindowDimensions)
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
-createClip = (path) ->
+createClip = (path, element) ->
   clip = Snap(svgElement("clipPath"))
   clip.append(path)
   clip.attr(id: clip.id)
-  clip
+  Snap(element).append(clip)
+  clip.node
 
 applyClip = (element, clip) ->
-  Snap(element).append(clip)
-  Snap(element).attr("clip-path": "url(##{clip.id})")
+  Snap(element).attr("clip-path": "url(##{Snap(clip).id})")
 
 localMatrix = (element) ->
   m = null
@@ -60,7 +60,22 @@ matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
-isID = (s) -> typeof s is 'string' and (s.charAt(0) is '#')
+getObjectFromReference = (namespace, reference) ->
+  switch reference.charAt(0)
+    when "#"
+      # TODO Parse relative and try raw
+      name = reference[1..]
+      if namespace != ""
+        fullName = namespace + "." + name
+      else
+        fulName = name
+      ao = AnimationObject.byFullName[fullName]
+
+      if ao?
+        ao
+      else
+        AnimationObject.byFullName[name]
+    # TODO Animations and variables
 
 stringCmp = (a, b) ->
   if a < b

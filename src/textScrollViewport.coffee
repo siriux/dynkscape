@@ -6,7 +6,7 @@ class ScrollTextViewport extends AnimationObject
     @clipElement.append(container)
 
     clipRect = flowRect.clone()
-    clip = createClip(clipRect)
+    clip = createClip(clipRect, @clipElement)
     applyClip(@clipElement, clip)
 
     @clipWidth = parseFloat(clipRect.attr("width")) or 0
