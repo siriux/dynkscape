@@ -2,20 +2,20 @@ class ScrollTextViewport extends AnimationObject
 
   constructor: (flowRoot, flowRect, container) ->
 
-    @clipElement = sSvg.g()
-    @clipElement.append(container)
+    @clipElement = svgElement("g")
+    @clipElement.appendChild(container)
 
-    clipRect = Snap(flowRect).clone().node
+    clipRect = flowRect.cloneNode(false)
     clip = createClip(clipRect, @clipElement)
     applyClip(@clipElement, clip)
 
     @clipWidth = getFloatAttr(clipRect, "width", 0)
     @clipHeight = getFloatAttr(clipRect, "height", 0)
 
-    $(flowRoot).replaceWith(@clipElement.node)
+    $(flowRoot).replaceWith(@clipElement)
 
     # Raw, no clipping or compensation
-    super(container.node, {}, @clipWidth, @clipWidth, true)
+    super(container, {}, @clipWidth, @clipWidth, true)
 
     base = State.fromMatrix(localMatrix(flowRect))
     base.translateX += getFloatAttr(flowRect, "x", 0)

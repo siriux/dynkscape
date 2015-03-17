@@ -5,7 +5,7 @@ class TextScroll extends AnimationObject
 
     flowRoot = $(@element).find("flowRoot")[0]
 
-    flowRect = Snap(flowRoot).select("flowRegion > rect").node
+    flowRect = $(flowRoot).find("flowRegion > rect")[0]
 
     setTransform(flowRect, getStringAttr(flowRoot, "transform"))
 
@@ -16,9 +16,9 @@ class TextScroll extends AnimationObject
 
     # ForeignObject
 
-    @container = Snap(svgElement("foreignObject"))
+    @container = svgElement("foreignObject")
 
-    @container.attr
+    setAttrs @container,
       width: flowWidth
       height: flowHeight # Provide temporal height to allow real calculations inside
 
@@ -76,12 +76,12 @@ class TextScroll extends AnimationObject
         "text-align": align
       .html(rederedText)
 
-    @container.append(@textContent[0])
+    @container.appendChild(@textContent[0])
 
     # Set the real size of the @container to it's content size
 
     containerHeight = @textContent.height() + padding*2
-    @container.attr(height: containerHeight)
+    @container.setAttribute("height", containerHeight)
 
     @viewport.recalculate()
 

@@ -1,7 +1,6 @@
-sSvg = Snap.select("svg")
-jSvg = $("svg").first()
+svgNode = $("svg")[0]
 
-svgViewBox = jSvg.attr("viewBox").match(/-?[\d\.]+/g)
+svgViewBox = svgNode.getAttribute("viewBox").match(/-?[\d\.]+/g)
 svgPageWidth = svgViewBox[2]
 svgPageHeight = svgViewBox[3]
 svgProportions = svgPageWidth/svgPageHeight
@@ -29,44 +28,61 @@ $(window).resize(updateWindowDimensions)
 htmlElement = (name) -> document.createElementNS("http://www.w3.org/1999/xhtml", name)
 svgElement = (name) -> document.createElementNS("http://www.w3.org/2000/svg", name)
 
+__nextClipId = 0
 createClip = (path, element) ->
-  clip = Snap(svgElement("clipPath"))
-  clip.append(path)
-  clip.attr(id: clip.id)
-  Snap(element).append(clip)
-  clip.node
+  clip = svgElement("clipPath")
+  clip.appendChild(path)
+
+  id = "clip#{__nextClipId}"
+  __nextClipId += 1
+  clip.setAttribute('id', id)
+
+  element.appendChild(clip)
+  clip
 
 applyClip = (element, clip) ->
-  Snap(element).attr("clip-path": "url(##{Snap(clip).id})")
+  element.setAttribute("clip-path", "url(##{$(clip).attr('id')})")
 
 localMatrix = (element) ->
   m = null
   bv = element.transform.baseVal
   if bv? and bv.length > 0
     m = bv[0]?.matrix
-  new Snap.Matrix(m)
 
-globalMatrix = (element) -> new Snap.Matrix(element.getScreenCTM())
+  m ? svgNode.createSVGMatrix()
+
+
+globalMatrix = (element) -> element.getScreenCTM()
 
 actualMatrix = (element, base) -> # Actual matrix with respect to base, including x,y translate
-  baseMatrix = if base? then globalMatrix(base) else globalMatrix(sSvg.node)
+  baseMatrix = if base? then globalMatrix(base) else globalMatrix(svgNode)
   elementMatrix = globalMatrix(element)
 
   x = getFloatAttr(element, "x", 0)
   y = getFloatAttr(element, "y", 0)
-  baseMatrix.invert().add(elementMatrix).translate(x, y)
+
+  baseMatrix.inverse().multiply(elementMatrix).translate(x, y)
 
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
 
-getStringAttr = (e, name, def) -> $(e).attr(name) ? def
+getStringAttr = (e, name, def) -> e.getAttribute(name) ? def
 getIntAttr = (e, name, def) -> parseInt(getStringAttr(e,name)) or def
 getFloatAttr = (e, name, def) -> parseFloat(getStringAttr(e,name)) or def
+
+setAttrs = (e, attrs) ->
+  for k, v of attrs
+    e.setAttribute(k, v)
+
+setStyle = (e, attrs) ->
+  for k, v of attrs
+    e.style[k] = v
+
 setTransform = (e, t) ->
-  if t instanceof Snap.Matrix
-    t = t.toString()
-  $(e).attr(transform: t)
+  if t instanceof SVGMatrix
+    t = "matrix(#{t.a},#{t.b},#{t.c},#{t.d},#{t.e},#{t.f})"
+  e.setAttribute("transform", t)
 
 getObjectFromReference = (namespace, reference) ->
   if typeof reference is "string"

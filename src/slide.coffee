@@ -8,18 +8,26 @@ class Slide extends AnimationObject
     @easing = if meta.slide.easing? then meta.slide.easing else "inout"
 
     # Style
-    Snap(@origElement).attr(fill: "#777", "fill-opacity": 0.4) #TODO Another rect to avoid problems with border?
+    #TODO Another rect to avoid problems with border?
+    setStyle @origElement,
+      fill: "#777"
+      "fill-opacity": 0.4
 
-    se = Snap(@element)
-    se.attr(cursor: "pointer")
+    @element.setAttribute("cursor", "pointer")
 
     x = getFloatAttr(@origElement, "x", 0)
     y = getFloatAttr(@origElement, "y", 0)
 
-    t = se.text(x + @width*0.5, y + @height*0.5, @index.toString())
-    t.attr
-      "text-anchor": "middle"
+    t = svgElement("text")
+    t.appendChild(document.createTextNode(@index.toString()))
+    @element.appendChild(t)
+    setAttrs t,
+      x: x + @width*0.5
+      y: y + @height*0.5
       dy: ".3em"
+
+    setStyle t,
+      "text-anchor": "middle"
       "font-family": "Arial"
       "font-size": @width * 0.5
       fill: "#fff"

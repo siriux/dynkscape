@@ -43,7 +43,7 @@ class AnimationObject
 
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
-      
+
       # To be used as a view in navigations
       @viewState = State.fromMatrix(actualMatrix(@element))
 
@@ -72,11 +72,11 @@ class AnimationObject
 
       # Wrap in a group
       @origElement = @element
-      group = sSvg.g()
-      $(@element).replaceWith(group.node)
-      group.append(@element)
+      group = svgElement("g")
+      $(@element).replaceWith(group)
+      group.appendChild(@element)
       setTransform(@element, "")
-      @element = group.node
+      @element = group
 
       # Set base state on the group
       @setBase(s)

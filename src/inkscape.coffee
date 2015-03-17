@@ -5,10 +5,16 @@ initInkscape = () ->
   processDefaultInkscapeMetaDescs()
 
 setBackgroundColor = () ->
-  background = Snap("svg namedview").attr("pagecolor")
+  background = $("svg namedview")[0].getAttribute("pagecolor")
   # Create a really large centered rect as background
-  bg = sSvg.paper.rect(-50000, -50000, 100000, 100000)
-  bg.attr('fill', background)
+  bg = svgElement("rect")
+  svgNode.appendChild(bg)
+  setAttrs bg,
+    x: -50000
+    y: -50000
+    width: 100000
+    height: 100000
+    fill: background
 
 initInkscapeLayers = () ->
 
@@ -23,7 +29,7 @@ initInkscapeLayers = () ->
     $.makeArray(layers)
 
   baseLayers = inkscapeLayersRecursive($("svg").first(), "layers")
-  Layer.main = new Layer(sSvg.node, "layers", "__main__", baseLayers)
+  Layer.main = new Layer(svgNode, "layers", "__main__", baseLayers)
 
 processInkscapeMetaDescs = (base, callback) ->
   $(base).find("desc").each (idx, d) ->
@@ -44,7 +50,7 @@ processDefaultInkscapeMetaDescs = () ->
   metas = []
   processInkscapeMetaDescs document, (e, meta) ->
     classes = meta.class ? ""
-    Snap(e).addClass("AnimationObject #{classes}")
+    e.setAttribute("class", "AnimationObject #{classes}")
 
     metas.push([e, meta])
 

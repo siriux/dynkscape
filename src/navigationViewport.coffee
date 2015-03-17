@@ -6,7 +6,7 @@ class NavigationViewport  extends AnimationObject
 
     if @layer.isMain()
       @isMain = true
-      @clipElement = sSvg.node
+      @clipElement = svgNode
 
       @viewportBaseState = new State()
       @viewportBaseState.center = [0,0] # To use the same default
@@ -15,20 +15,25 @@ class NavigationViewport  extends AnimationObject
     else
       viewportMatrix = actualMatrix(viewportEl) # TODO Remove transformations of parent? Is needed?
 
-      snapViewport = Snap(NavigationViewport.main.element).g()
+      snapViewport = svgElement("g")
+      NavigationViewport.main.element.appendChild(snapViewport)
 
       # Create group background
-      bg = snapViewport.rect(0, 0, getFloatAttr(viewportEl, "width"), getFloatAttr(viewportEl, "height"))
-      bg.attr(fill: "rgba(0,0,0,0)") # Transparent
-      setTransform(bg.node, viewportMatrix)
+      bg = svgElement("rect")
+      snapViewport.appendChild(bg)
+      setAttrs bg,
+        width: getFloatAttr(viewportEl, "width")
+        height: getFloatAttr(viewportEl, "height")
+        fill: "rgba(0,0,0,0)" # Transparent
+      setTransform(bg, viewportMatrix)
 
       # Clip the layer to the viewport
-      clipRect = bg.clone().node
+      clipRect = bg.cloneNode(false)
       clip = createClip(clipRect, snapViewport)
       applyClip(snapViewport, clip)
 
       @isMain = false
-      @clipElement = snapViewport.node
+      @clipElement = snapViewport
 
       @clipWidth = getFloatAttr(clipRect, "width", 0)
       @clipHeight = getFloatAttr(clipRect, "height", 0)
@@ -39,7 +44,9 @@ class NavigationViewport  extends AnimationObject
 
       contents = @layer.element
 
-    container = Snap(@clipElement).g().node
+    container = svgElement("g")
+    @clipElement.appendChild(container)
+
     super(container, {}, svgPageWidth, svgPageHeight, true) # Raw, no clipping or compensation
 
     $(@element).append(contents)

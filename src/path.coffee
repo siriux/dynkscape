@@ -3,14 +3,13 @@ class Path extends AnimationObject
   constructor: (element, meta) ->
     super(element, meta, 0, 0, true) # Raw Animation object
 
-    sp = Snap(@element)
     path =
-     if sp.hasClass("translatePath")
-       sp
-     else
-       sp.select(".translatePath")
+      if "translatePath" in @element.classList
+        @element
+      else
+        @element.querySelector(".translatePath")
 
-    pathString = getStringAttr(path.node, "d")
+    pathString = getStringAttr(path, "d")
     @bezier = new Bezier(pathString)
 
   getRangeInfo: (range) => @bezier.getRangeInfo(range)

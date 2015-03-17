@@ -1,13 +1,11 @@
 init = () ->
   # Full screen
-  jSvg
-    .attr("width", "100%")
-    .attr("height", "100%")
+  setAttrs(svgNode, (width: "100%", height: "100%"))
 
   updateWindowDimensions()
   initInkscape()
 
-  jSvg.keydown (e) ->
+  $(svgNode).keydown (e) ->
     #if e.keyCode == 48
     #  TextScroll.byName["someText"].goToAnchor("sec1")
 

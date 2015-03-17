@@ -8,7 +8,7 @@ class Navigation extends AnimationObject
 
     if layer.isMain()
       @isMain = true
-      super(jSvg[0], meta, svgPageWidth, svgPageHeight, true) # Raw
+      super(svgNode, meta, svgPageWidth, svgPageHeight, true) # Raw
       Navigation.main = this
       viewportEl = null
     else
@@ -31,7 +31,7 @@ class Navigation extends AnimationObject
       @control = $(@element).find(".mainNavigationControl")[0]
       m = actualMatrix(@control)
       setTransform(@control, m)
-      sSvg.append(@control)
+      svgNode.appendChild(@control)
     else
       @control = $(@element).find(".navigationControl")[0]
 
