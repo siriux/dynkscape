@@ -30,7 +30,7 @@ class Navigation extends AnimationObject
       # Fix control on screen
       @control = $(@element).find(".mainNavigationControl")[0]
       m = actualMatrix(@control)
-      Snap(@control).transform(m)
+      setTransform(@control, m)
       sSvg.append(@control)
     else
       @control = $(@element).find(".navigationControl")[0]

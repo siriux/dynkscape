@@ -119,6 +119,8 @@ class MetaParser
 
 # *********** #
 
+###
+
 metaOut = MetaParser.parse """
   asda:
     bar:
@@ -133,8 +135,8 @@ metaOut = MetaParser.parse """
        - scale:  2  d=1.5 // A comment
        - rotate: 30 d=3 ; - translate: 10 20
       / #objectB o=300:
-       - scale:  2 d=7 /* e=linear
-       - rotate: 30 d=2.3 */
+       - scale:  2 d=7 e=linear
+       - rotate: 30 d=2.3
   """
 
 metaOut2 = MetaParser.parse """
@@ -157,6 +159,8 @@ animations:
 
 animOut = MetaParser.parseAnimation "scale #foo: 2 3; rotate #bar: 25 d=37"
 
-#console.log JSON.stringify(metaOut, null, 2)
-#console.log JSON.stringify(metaOut2, null, 2)
-#console.log JSON.stringify(animOut, null, 2)
+console.log JSON.stringify(metaOut, null, 2)
+console.log JSON.stringify(metaOut2, null, 2)
+console.log JSON.stringify(animOut, null, 2)
+
+###

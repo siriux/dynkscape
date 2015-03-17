@@ -13,28 +13,25 @@ class NavigationViewport  extends AnimationObject
 
       contents = (l.element for l in @layer.children)
     else
-      viewEl = Snap(viewportEl)
-
-      viewportMatrix = actualMatrix(viewEl.node) # TODO Remove transformations of parent? Is needed?
+      viewportMatrix = actualMatrix(viewportEl) # TODO Remove transformations of parent? Is needed?
 
       snapViewport = Snap(NavigationViewport.main.element).g()
 
       # Create group background
-      bg = snapViewport.rect(0,0,viewEl.attr("width"),viewEl.attr("height"))
-      bg.attr
-        fill: "rgba(0,0,0,0)" # Transparent
-        transform: viewportMatrix
+      bg = snapViewport.rect(0, 0, getFloatAttr(viewportEl, "width"), getFloatAttr(viewportEl, "height"))
+      bg.attr(fill: "rgba(0,0,0,0)") # Transparent
+      setTransform(bg.node, viewportMatrix)
 
       # Clip the layer to the viewport
-      clipRect = bg.clone()
+      clipRect = bg.clone().node
       clip = createClip(clipRect, snapViewport)
       applyClip(snapViewport, clip)
 
       @isMain = false
       @clipElement = snapViewport.node
 
-      @clipWidth = parseFloat(clipRect.attr("width")) or 0
-      @clipHeight = parseFloat(clipRect.attr("height")) or 0
+      @clipWidth = getFloatAttr(clipRect, "width", 0)
+      @clipHeight = getFloatAttr(clipRect, "height", 0)
       @viewportBaseState = State.fromMatrix(viewportMatrix)
 
       # Replace the layer with @clipElement, needed to keep z-order

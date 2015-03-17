@@ -5,29 +5,27 @@ class ScrollTextViewport extends AnimationObject
     @clipElement = sSvg.g()
     @clipElement.append(container)
 
-    clipRect = flowRect.clone()
+    clipRect = Snap(flowRect).clone().node
     clip = createClip(clipRect, @clipElement)
     applyClip(@clipElement, clip)
 
-    @clipWidth = parseFloat(clipRect.attr("width")) or 0
-    @clipHeight = parseFloat(clipRect.attr("height")) or 0
+    @clipWidth = getFloatAttr(clipRect, "width", 0)
+    @clipHeight = getFloatAttr(clipRect, "height", 0)
 
     $(flowRoot).replaceWith(@clipElement.node)
 
     # Raw, no clipping or compensation
     super(container.node, {}, @clipWidth, @clipWidth, true)
 
-    base = State.fromMatrix(localMatrix(flowRect.node))
-    base.translateX += parseFloat(flowRect.attr("x")) or 0
-    base.translateY += parseFloat(flowRect.attr("y")) or 0
+    base = State.fromMatrix(localMatrix(flowRect))
+    base.translateX += getFloatAttr(flowRect, "x", 0)
+    base.translateY += getFloatAttr(flowRect, "y", 0)
 
     @setBase(base)
 
   recalculate: () =>
-    se = Snap(@element)
-
-    @width = parseFloat(se.attr("width")) or 0
-    @height = parseFloat(se.attr("height")) or 0
+    @width = getFloatAttr(@element, "width", 0)
+    @height = getFloatAttr(@element, "height", 0)
 
     @maxScroll = Math.max(0, @height - @clipHeight)
 

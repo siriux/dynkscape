@@ -52,13 +52,21 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
   baseMatrix = if base? then globalMatrix(base) else globalMatrix(sSvg.node)
   elementMatrix = globalMatrix(element)
 
-  e = Snap(element)
-
-  baseMatrix.invert().add(elementMatrix).translate(e.attr("x"), e.attr("y"))
+  x = getFloatAttr(element, "x", 0)
+  y = getFloatAttr(element, "y", 0)
+  baseMatrix.invert().add(elementMatrix).translate(x, y)
 
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 
 matrixScaleY = (matrix) -> Math.sqrt(matrix.c * matrix.c + matrix.d * matrix.d)
+
+getStringAttr = (e, name, def) -> $(e).attr(name) ? def
+getIntAttr = (e, name, def) -> parseInt(getStringAttr(e,name)) or def
+getFloatAttr = (e, name, def) -> parseFloat(getStringAttr(e,name)) or def
+setTransform = (e, t) ->
+  if t instanceof Snap.Matrix
+    t = t.toString()
+  $(e).attr(transform: t)
 
 getObjectFromReference = (namespace, reference) ->
   if typeof reference is "string"

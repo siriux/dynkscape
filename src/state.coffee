@@ -104,8 +104,7 @@ class State
 
     # Apply transform
 
-    $(ao.element).attr
-      transform: "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})"
+    setTransform(ao.element, "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})")
 
     $(ao.origElement).css
       opacity: @opacity

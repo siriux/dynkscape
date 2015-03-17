@@ -5,12 +5,12 @@ class TextScroll extends AnimationObject
 
     flowRoot = $(@element).find("flowRoot")[0]
 
-    flowRect = Snap(flowRoot).select("flowRegion > rect")
+    flowRect = Snap(flowRoot).select("flowRegion > rect").node
 
-    flowRect.attr(transform: $(flowRoot).attr("transform"))
+    setTransform(flowRect, getStringAttr(flowRoot, "transform"))
 
-    flowWidth = parseFloat(flowRect.attr("width")) or 0
-    flowHeight = parseFloat(flowRect.attr("height")) or 0
+    flowWidth = getFloatAttr(flowRect, "width", 0)
+    flowHeight = getFloatAttr(flowRect, "height", 0)
 
     @scroll = 0
 
@@ -132,7 +132,7 @@ class TextScroll extends AnimationObject
     @textContent.css(position: "relative") # Needed to get the right offsetTop
 
     @textContent.find("a[name]").each (idx, anchor) =>
-      name = $(anchor).attr("name")
+      name = getStringAttr(anchor, "name")
       @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
 
     @textContent.css(position: "static") # Revert to default

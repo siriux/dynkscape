@@ -10,28 +10,11 @@ class AnimationObject
     else
       name
 
-  constructor: (@element, @meta, w, h, raw = false) ->
+  constructor: (@element, @meta, @width, @height, raw = false) ->
     @namespace = @meta.namespace ? ""
     @name = @meta.name
 
     @fullName = AnimationObject.createFullName(@namespace, @name)
-
-    se = Snap(@element)
-    box = se.getBBox()
-
-    if not (w? and h?)
-      w = parseFloat(se.attr("width"))
-      h = parseFloat(se.attr("height"))
-      if isNaN(w) or isNaN(h)
-        w = box.w
-        h = box.h
-
-    @width = w
-    @height = h
-
-    @baseState = null
-    @currentState = null
-    @provisionalState = null
 
     if @name? # Ignore anonymous animation objects
       AnimationObject.byFullName[@fullName] = this
@@ -60,7 +43,7 @@ class AnimationObject
 
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
-
+      
       # To be used as a view in navigations
       @viewState = State.fromMatrix(actualMatrix(@element))
 
@@ -68,44 +51,41 @@ class AnimationObject
       s = State.fromMatrix(localMatrix(@element))
       s.opacity = $(@element).css("opacity")
       s.animationObject = this
-      s.changeCenter([0.5, 0.5]) # fromMatrix has de wrong default center
+
+      box = @element.getBBox()
+
+      if not (@width? and @height?)
+        @width = getFloatAttr(@element, "width")
+        @height = getFloatAttr(@element, "height")
+        if isNaN(@width) or isNaN(@height)
+          @width = box.width
+          @height = box.height
+
+      # To compensate offset of objects inside a group
+      trfP = s.transformPoint(box)
+      @compensateDelta =
+        x: trfP.x - s.translateX
+        y: trfP.y - s.translateY
+
+      # fromMatrix has de wrong default center
+      s.changeCenter([0.5, 0.5])
 
       # Wrap in a group
       @origElement = @element
       group = sSvg.g()
       $(@element).replaceWith(group.node)
       group.append(@element)
-      se.attr(transform: "")
+      setTransform(@element, "")
       @element = group.node
 
       # Set base state on the group
       @setBase(s)
-
-      # To compensate offset of objects inside a group
-      box = Snap(@element).getBBox()
-      @compensateDelta =
-        x: box.x - s.translateX
-        y: box.y - s.translateY
-
-      # Add clip
-      oe = Snap(@origElement)
-      oe.attr(id: oe.id)
-      use = Snap(svgElement("use"))
-      use.attr("xlink:href": "##{oe.id}")
-
-      @clip = createClip(use, group)
 
   init: () =>
     # Init animations
     if @animations?
       for anim in @animations
         anim.init()
-
-    # Add clipping
-    if @meta.clip?
-      o = getObjectFromReference(@namespace, @meta.clip)
-      if o?.clip?
-        applyClip(@element, o.clip)
 
   setBase: (state) =>
     state.animationObject = this

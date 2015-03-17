@@ -2,21 +2,19 @@ class Slide extends AnimationObject
   constructor: (element, meta) ->
     super(element, meta)
 
-    se = Snap(@element)
-    soe = Snap(@origElement)
-
     @index = meta.slide.index
 
     @duration = if meta.slide.duration? then meta.slide.duration else 0
     @easing = if meta.slide.easing? then meta.slide.easing else "inout"
 
     # Style
-    soe.attr(fill: "#777", "fill-opacity": 0.4) #TODO Another rect to avoid problems with border?
+    Snap(@origElement).attr(fill: "#777", "fill-opacity": 0.4) #TODO Another rect to avoid problems with border?
 
+    se = Snap(@element)
     se.attr(cursor: "pointer")
 
-    x = parseFloat(soe.attr("x")) or 0
-    y = parseFloat(soe.attr("y")) or 0
+    x = getFloatAttr(@origElement, "x", 0)
+    y = getFloatAttr(@origElement, "y", 0)
 
     t = se.text(x + @width*0.5, y + @height*0.5, @index.toString())
     t.attr

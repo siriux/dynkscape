@@ -10,7 +10,7 @@ class Path extends AnimationObject
      else
        sp.select(".translatePath")
 
-    pathString = path.attr("d")
+    pathString = getStringAttr(path.node, "d")
     @bezier = new Bezier(pathString)
 
   getRangeInfo: (range) => @bezier.getRangeInfo(range)
