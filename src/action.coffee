@@ -58,6 +58,7 @@ class Action
     @desc.init?(@vars) # It can modify or define new vars
     @time = @vars.time
     @duration = @vars.duration
+    @easing = Ease[@vars.easing]
 
   singleStart: () => @desc.singleStart?(@vars)
 
@@ -68,7 +69,7 @@ class Action
     rawDelta = Math.min(Math.max(offset / @duration, 0), 1)
 
     if 0 < rawDelta < 1
-      delta = getEasing(@vars.easing)(rawDelta)
+      delta = @easing(rawDelta)
     else
       delta = rawDelta
 

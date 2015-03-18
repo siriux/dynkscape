@@ -125,12 +125,3 @@ stringCmp = (a, b) ->
     1
   else
     0
-
-isEasing = (name) -> name in ["linear", "in", "out", "inout"]
-
-getEasing = (name) ->
-  switch name
-    when "linear" then mina.linear
-    when "in" then mina.easein
-    when "out" then mina.easeout
-    when "inout" then mina.easeinout
