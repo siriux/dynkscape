@@ -28,7 +28,7 @@ class TextScroll extends AnimationObject
 
     # Text Content
 
-    rawText = $.makeArray($(flowRoot).find("flowPara"))
+    rawText = [].slice.call($(flowRoot).find("flowPara"))
       .map((p) -> $(p).text())
       .join("\n")
 
@@ -64,32 +64,31 @@ class TextScroll extends AnimationObject
       else
         rawText
 
-    @textContent = $(htmlElement("div"))
+    @textContent = htmlElement("div")
 
     align = if meta.textScroll.align? then meta.textScroll.align else "justify"
     padding = if meta.textScroll.padding? then meta.textScroll.padding else 20
 
-    @textContent
-      .css
-        width: flowWidth - padding*2 # Set the width, so that paragraphs can expand
-        padding: "#{padding}px"
-        "text-align": align
-      .html(rederedText)
+    setStyle @textContent,
+      width: flowWidth - padding*2 # Set the width, so that paragraphs can expand
+      padding: "#{padding}px"
+      "text-align": align
 
-    @container.appendChild(@textContent[0])
+    @textContent.innerHTML = rederedText
+
+    @container.appendChild(@textContent)
 
     # Set the real size of the @container to it's content size
-
-    containerHeight = @textContent.height() + padding*2
+    containerHeight = @textContent.clientHeight
     @container.setAttribute("height", containerHeight)
 
     @viewport.recalculate()
 
     # Scroll
 
-    @textContent.on "mousewheel wheel", (e) =>
+    $(@textContent).on "mousewheel wheel", (e) =>
       if (not e.ctrlKey) # With ctrl pressed, allow to zoom
-        delta = e.originalEvent.wheelDelta || e.originalEvent.deltaY
+        delta = e.wheelDelta || e.deltaY
         # Negative to simulate mac natural scroll on chrome
         # TODO Improve for other browsers
         @updateScroll(-delta)
@@ -100,7 +99,7 @@ class TextScroll extends AnimationObject
     prevY = null
     dragging = false
 
-    @textContent
+    $(@textContent)
       .mousemove (e) =>
         if dragging
           # TODO Adapt scaleFactor to rotation !!!
@@ -129,13 +128,13 @@ class TextScroll extends AnimationObject
     # Process Anchors
     @anchors = {}
 
-    @textContent.css(position: "relative") # Needed to get the right offsetTop
+    $(@textConten).css(position: "relative") # Needed to get the right offsetTop
 
-    @textContent.find("a[name]").each (idx, anchor) =>
+    $(@textContent).find("a[name]").each (idx, anchor) =>
       name = getStringAttr(anchor, "name")
       @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
 
-    @textContent.css(position: "static") # Revert to default
+    $(@textContent).css(position: "static") # Revert to default
 
   setScroll: (s) =>
     @viewport.setScroll(s)

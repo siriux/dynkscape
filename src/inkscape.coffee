@@ -5,7 +5,7 @@ initInkscape = () ->
   processDefaultInkscapeMetaDescs()
 
 setBackgroundColor = () ->
-  background = $("svg namedview")[0].getAttribute("pagecolor")
+  background = document.querySelector("svg namedview").getAttribute("pagecolor")
   # Create a really large centered rect as background
   bg = svgElement("rect")
   svgNode.appendChild(bg)
@@ -19,14 +19,14 @@ setBackgroundColor = () ->
 initInkscapeLayers = () ->
 
   inkscapeLayersRecursive = (root, namespace) ->
-    layers = root
-      .children("g")
-      .filter (idx, g) -> g.getAttribute("inkscape:groupmode") == "layer"
+    children = root.children("g")
+    layers = children
+      .filter (idx) -> children[idx].getAttribute("inkscape:groupmode") == "layer"
       .map (idx, l) ->
         name = l.getAttribute("inkscape:label")
         children = inkscapeLayersRecursive($(l), namespace + "." + name)
         new Layer(l, namespace, name, children)
-    $.makeArray(layers)
+    [].slice.call(layers)
 
   baseLayers = inkscapeLayersRecursive($("svg").first(), "layers")
   Layer.main = new Layer(svgNode, "layers", "__main__", baseLayers)

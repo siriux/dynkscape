@@ -174,8 +174,8 @@ class Navigation extends AnimationObject
     panning = false
 
     startMove = (e) =>
-      prevX = e.originalEvent.clientX
-      prevY = e.originalEvent.clientY
+      prevX = e.clientX
+      prevY = e.clientY
 
     stopMove = () =>
       dragging = false
@@ -192,8 +192,8 @@ class Navigation extends AnimationObject
             panning = false
 
           if dragging or panning
-            x = e.originalEvent.clientX
-            y = e.originalEvent.clientY
+            x = e.clientX
+            y = e.clientY
 
             dx = (x - prevX) / svgPageScale
             dy = (y - prevY) / svgPageScale
@@ -228,13 +228,13 @@ class Navigation extends AnimationObject
           stopMove() # Stop any pending move
 
           # Try to normalize across browsers.
-          delta = e.originalEvent.wheelDelta || e.originalEvent.deltaY
+          delta = e.wheelDelta || e.deltaY
           delta /= 500
           delta = 0.5 if delta > 0.5
           delta = -0.5 if delta < -0.5
 
-          x = e.originalEvent.clientX
-          y = e.originalEvent.clientY
+          x = e.clientX
+          y = e.clientY
 
           # Center relative to page
           cx = (x - svgPageOffsetX) / svgPageScale
