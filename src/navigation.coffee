@@ -204,6 +204,7 @@ class Navigation extends AnimationObject
             prevY = y
 
             @_setCurrentSlide(null)
+            @updateReferenceState()
 
             false
 
@@ -248,13 +249,16 @@ class Navigation extends AnimationObject
             @viewport.scale(scale, cx, cy)
 
           @_setCurrentSlide(null)
+          @updateReferenceState()
 
           false # Avoid zooming on windows if ctrl is pressed
 
   goToView: (view, skipAnimation = false, centerPage = true) =>
     dest = @viewport.getStateForMaximizedView(view, centerPage)
+    @goToState(dest, skipAnimation, view.duration, view.easing)
 
-    if (view.duration == 0 or skipAnimation)
+  goToState: (dest, skipAnimation = false, duration, easing) =>
+    if (duration == 0 or skipAnimation)
       @viewport.currentState = dest
       @viewport.applyCurrent()
     else
@@ -275,18 +279,17 @@ class Navigation extends AnimationObject
         scaleY: diff.scaleY
         rotate: diff.rotation
         center: diff.center
-        duration: view.duration ? 1
-        easing: view.easing ? "linear"
+        duration: duration ? 1
+        easing: easing ? "inout"
 
       @animating = true
-      anim = a.getAnim () => @animating = false
+      anim = a.getAnim () =>
+        @animating = false
+        @updateReferenceState()
       anim.play()
 
   goTo: (dest, skipAnimation = false) =>
     if not @animating
-      if typeof dest is 'string'
-        dest = AnimationObject.byFullName[dest].index
-
       @_setCurrentSlide(dest)
       s = @slideList[dest]
 
@@ -316,6 +319,41 @@ class Navigation extends AnimationObject
       @_setCurrentSlide(null)
 
       @goToView(@viewport.getFullView(), false, false) # Don't skip animation, don't perform page centering
+
+  saveReferenceState: () => newReferenceState(@reference)
+
+  updateReferenceState: () =>
+    updateReferenceState @reference, (s) =>
+      if @currentView?
+        s.view = @currentView
+      else
+        viewState = @viewport.currentState
+        s.view =
+          translateX: viewState.translateX
+          translateY: viewState.translateY
+          scaleX: viewState.scaleX
+          scaleY: viewState.scaleY
+          rotation: viewState.rotation
+          center: viewState.center
+
+      # TODO Save Active
+      # TODO Save lock, showViews
+      # TODO Animation state
+
+  applyReferenceState: (s, skipAnimation = false) =>
+    v = s.view
+    if v instanceof Object
+      dest = new State()
+      dest.translateX = v.translateX
+      dest.translateY = v.translateY
+      dest.scaleX = v.scaleX
+      dest.scaleY = v.scaleY
+      dest.rotation = v.rotation
+      dest.center = v.center
+      dest.animationObject = @viewport.currentState.animationObject
+      @goToState(dest, skipAnimation)
+    else
+      @goTo(v, skipAnimation)
 
   viewPlay: () =>
     s = @slideList[@currentView]

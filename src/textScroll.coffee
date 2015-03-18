@@ -138,11 +138,23 @@ class TextScroll extends AnimationObject
 
   setScroll: (s) =>
     @viewport.setScroll(s)
+    @updateReferenceState()
 
-  updateScroll: (delta) => @viewport.updateScroll(delta)
+  updateScroll: (delta) =>
+    @viewport.updateScroll(delta)
+    @updateReferenceState()
 
   goToAnchor: (name) =>
     # TODO Animation?
     anchorScroll = @anchors[name]
     if anchorScroll?
       @setScroll(anchorScroll)
+
+  saveReferenceState: () => newReferenceState(@reference)
+
+  updateReferenceState: () =>
+    updateReferenceState @reference, (s) => s.scroll = @viewport.currentScroll()
+
+  applyReferenceState: (s, skipAnimation = false) =>
+    if s.scroll?
+      @setScroll(s.scroll)

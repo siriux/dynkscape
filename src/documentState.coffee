@@ -1,70 +1,79 @@
-documentStateStack = []
+documentState = null
 
-lastDocumentState = () -> documentStateStack[documentStateStack.length - 1]
+ensureDocumentState = () ->
+ if not documentState?
+   documentState = {}
+   window.history.pushState("", document.title, window.location.pathname + "#restore")
 
-clearDocumentState = () ->
-  documentStateStack.length = 0
+clearDocumentState = () -> documentState = null
 
-newDocumentState = () -> documentStateStack.push {}
+_ensureAndGetReferenceState = (reference) ->
+  ensureDocumentState()
+  refStates = documentState[reference]
+  if not refStates?
+    refStates =
+      idx: 0
+      states: [{}]
+    documentState[reference] = refStates
+  refStates
 
-# TODO Redo? What would be the semantic?
-# When to clean redo?
-#  Clean for reference on updateReferenceCurrentState
-#  Clean all on newDocumentState
-# ???
-undoDocumentState = (reference) ->
-  if reference?
-    for s in documentStateStack by -1
-      if s[reference]?
-        delete s[reference]
-        break
+newReferenceState = (reference, state = {}) ->
+  refStates = _ensureAndGetReferenceState(reference)
+  refStates.states = refStates.states[0..refStates.idx]
+  refStates.states.push(state)
+  refStates.idx += 1
+
+undoReferenceState = (reference) ->
+  refStates = documentState?[reference]
+  if refStates? and refStates.idx > 0
+    refStates.idx -= 1
     applyCurrentState([reference])
-  else
-    curr = documentStateStack.pop()
-    applyCurrentState(Object.keys(curr))
 
-updateReferenceCurrentState = (reference, updateFunction) ->
-  curr = lastDocumentState()
-  s = curr[reference]
-  if not s?
-    s = {}
-    curr[reference] = s
-  updateFunction(s)
+redoReferenceState = (reference) ->
+  refStates = documentState?[reference]
+  if refStates? and refStates.idx < (refStates.states.length - 1)
+    refStates.idx += 1
+    applyCurrentState([reference])
 
-getStateForReference = (reference) ->
-  state = {}
-  for s in documentStateStack
-    partialState = s[reference]
-    if partialState?
-      $.extend(true, state, partialState) # Deep extend
-  state
+updateReferenceState = (reference, updateFunction) ->
+  refStates = _ensureAndGetReferenceState(reference)
+  current = refStates.states[refStates.idx]
+  updateFunction(current)
 
-applyCurrentState = (references) ->
-  if not references?
-    references = []
-    for s in documentStateStack
-      references = references.contact(Object.keys(s))
+getCurrentReferenceState = (reference) ->
+  refStates = documentState?[reference]
+  if refStates?
+    state = {}
+    for s in refStates.states[0..refStates.idx]
+      $.extend(true, state, s) # Deep extend
+    state
 
-  for ref in references
-    s = getStateForReference(ref)
-    o = getObjectFromReference(ref)
-    o.goToState(s)
+applyCurrentReferenceState = (reference, skipAnimation = false) ->
+  s = getCurrentReferenceState(reference)
+  if s?
+    o = getObjectFromReference("", reference)
+    o?.applyReferenceState(s, skipAnimation)
 
-saveDocumentStateStack = () ->
-  stateString = JSON.stringify(documentStateStack)
-  localStorage.setItem("documentStateStack", stateString)
+applyDocumentState = (skipAnimation = false) ->
+  if documentState?
+    for k, v of documentState
+      applyCurrentReferenceState(k, skipAnimation)
 
-loadDocumentStateStack = () ->
-  stateString = localStorage.getItem("documentStateStack")
+saveDocumentState = () ->
+  if documentState?
+    stateString = JSON.stringify(documentState)
+    localStorage.setItem("documentState", stateString)
+
+loadDocumentState = () ->
+  stateString = localStorage.getItem("documentState")
+
   if stateString?
-    documentStateStack = JSON.parse(stateString)
+    try
+      documentState = JSON.parse(stateString)
+    catch
+
+  if documentState?
+    applyDocumentState(true)
 
 saveEmptyDocumentState = () ->
-  localStorage.setItem("documentStateStack", "[]")
-
-$(window).unload () -> saveDocumentStateStack()
-
-# Init
-loadDocumentStateStack()
-if documentStateStack.length == 0
-  newDocumentState()
+  localStorage.setItem("documentState", "{}")

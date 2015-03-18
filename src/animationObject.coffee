@@ -16,9 +16,11 @@ class AnimationObject
 
     @fullName = AnimationObject.createFullName(@namespace, @name)
 
+    @reference = "##{@fullName}"
+
     if @name? # Ignore anonymous animation objects
       AnimationObject.byFullName[@fullName] = this
-
+    
     if @meta.raw?
       raw = @meta.raw
 
