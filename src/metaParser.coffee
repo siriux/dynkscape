@@ -1,61 +1,73 @@
 class MetaParser
 
-  @mainGrammar = """
-    start = line (nl line)* nl?
+  # # To generate the parser dynamically.
+  # #
+  # # Otherwise, generate it with http://pegjs.org/online and place it on lib
+  # # Process the coffeescript block string first (e.g with alert) to unscape charaters.
+  # # Set the righ name on the parse variable: PEG.mainParser and PEG.sideParser
+  #
+  # @mainGrammar = """
+  #   start = line (nl line)* nl?
+  #
+  #   line
+  #     = d:indent pair (";" pair)* ";"? comment?
+  #     / ws comment?
+  #
+  #   pair = l:left ":" r:right { MetaParser._processMain(l,r) }
+  #
+  #   indent = s:" "* { MetaParser._indent = s.length }
+  #
+  #   notCommentChar =            !("//" / "/\\*") c:[^\\n]   { return c }
+  #   notCommentOrColonChar =     !("//" / "/\\*") c:[^:\\n]  { return c }
+  #   notCommentOrSemicolonChar = !("//" / "/\\*") c:[^;\\n]  { return c }
+  #
+  #   left = c:notCommentOrColonChar+ { return c.join("") }
+  #
+  #   right
+  #     = c:notCommentOrSemicolonChar*  { return c.join("") }
+  #     / '"' c:notCommentChar* '"'     { return c.join("") }
+  #
+  #   ws = " "*
+  #   nl = "\\n"
+  #
+  #
+  #   comment
+  #     = "//" [^\\n]*
+  #     / "/\\*" (!"\\*/" .)* "\\*/"
+  #
+  #   """
+  #
+  # @sideGrammar = """
+  #
+  # { var __res = {}; __res["__positionals"] = []; }
+  #
+  # start = positional? (ws positional)* named? (ws named)* { return __res }
+  #
+  # positional = !(id:id ws? "=") value:value { __res["__positionals"].push(MetaParser._toValue(value)) }
+  #
+  # named = id:id ws? "=" ws? value:value { __res[id]=MetaParser._toValue(value) }
+  #
+  # id = c:[a-zA-Z0-9_]+ { return c.join("") }
+  #
+  # value
+  #   = c:[^ ="']+ { return c.join("") }
+  #   / '"' c:contents '"' { return c }
+  #
+  # contents = c:[^"']+ { return c.join("") }
+  #
+  # ws = " "+
+  #
+  # """
+  #
+  #
+  #
+  # @mainParser = PEG.buildParser(@mainGrammar)
+  #
+  # @sideParser = PEG.buildParser(@sideGrammar)
 
-    line
-      = d:indent pair (";" pair)* ";"? comment?
-      / ws comment?
+  @mainParser = PEG.mainParser
 
-    pair = l:left ":" r:right { MetaParser._processMain(l,r) }
-
-    indent = s:" "* { MetaParser._indent = s.length }
-
-    notCommentChar =            !("//" / "/\\*") c:[^\\n]   { return c }
-    notCommentOrColonChar =     !("//" / "/\\*") c:[^:\\n]  { return c }
-    notCommentOrSemicolonChar = !("//" / "/\\*") c:[^;\\n]  { return c }
-
-    left = c:notCommentOrColonChar+ { return c.join("") }
-
-    right
-      = c:notCommentOrSemicolonChar*  { return c.join("") }
-      / '"' c:notCommentChar* '"'     { return c.join("") }
-
-    ws = " "*
-    nl = "\\n"
-
-
-    comment
-      = "//" [^\\n]*
-      / "/\\*" (!"\\*/" .)* "\\*/"
-
-    """
-
-  @sideGrammar = """
-
-  { var __res = {}; __res["__positionals"] = []; }
-
-  start = positional? (ws positional)* named? (ws named)* { return __res }
-
-  positional = !(id:id ws? "=") value:value { __res["__positionals"].push(MetaParser._toValue(value)) }
-
-  named = id:id ws? "=" ws? value:value { __res[id]=MetaParser._toValue(value) }
-
-  id = c:[a-zA-Z0-9_]+ { return c.join("") }
-
-  value
-    = c:[^ ="']+ { return c.join("") }
-    / '"' c:contents '"' { return c }
-
-  contents = c:[^"']+ { return c.join("") }
-
-  ws = " "+
-
-  """
-
-  @mainParser = PEG.buildParser(@mainGrammar)
-
-  @sideParser = PEG.buildParser(@sideGrammar)
+  @sideParser = PEG.sideParser
 
   @parse: (meta, root={}) =>
     @_stack = [[-1, root]]
