@@ -10,6 +10,7 @@ setBackgroundColor = () ->
   bg = svgElement("rect")
   svgNode.appendChild(bg)
   setAttrs bg,
+    id: "pageBackground"
     x: -50000
     y: -50000
     width: 100000
@@ -49,8 +50,14 @@ processDefaultInkscapeMetaDescs = () ->
   # Get metas and add classes
   metas = []
   processInkscapeMetaDescs document, (e, meta) ->
-    classes = meta.class ? ""
-    e.setAttribute("class", "AnimationObject #{classes}")
+    if meta.class?
+      classes = "AnimationObject #{meta.class}"
+    else
+      classes = "AnimationObject"
+
+    if meta.type?
+      classes = "#{classes} #{meta.type}"
+    e.setAttribute("class", classes)
 
     metas.push([e, meta])
 

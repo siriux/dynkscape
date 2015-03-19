@@ -4,53 +4,50 @@ class Navigation extends AnimationObject
   @mainNavigationContainer: null
 
   constructor: (element, meta) ->
-    layer = AnimationObject.byFullName["layers." + meta.navigation.layer]
-
-    if layer.isMain()
+    if meta.navigation.content == Layer.main.fullName
       @isMain = true
-      super(svgNode, meta, svgPageWidth, svgPageHeight, true) # Raw
       Navigation.main = this
-      viewportEl = null
+      super(svgNode, meta, svgPageWidth, svgPageHeight, true) # Raw
     else
       @isMain = false
       super(element, meta)
-      viewportEl = $(@element).find(".viewport")[0]
-
-    @viewport = new NavigationViewport(layer, viewportEl)
 
     @slideList = []
-
-    # Set the slides layer on top
-    @slidesLayer = @viewport.layer.slidesLayer
-    if @slidesLayer?
-      se = @slidesLayer.element
-      $(se).appendTo(se.parentNode)
-
-    if @isMain
-      # Fix control on screen
-      @control = $(@element).find(".mainNavigationControl")[0]
-      m = actualMatrix(@control)
-      setTransform(@control, m)
-      svgNode.appendChild(@control)
-    else
-      @control = $(@element).find(".navigationControl")[0]
-
-    @lock = meta.navigation.hasOwnProperty("lock") && meta.navigation.lock != false
-    @showViews = meta.navigation.hasOwnProperty("showViews") && meta.navigation.showViews != false
-    @start = meta.navigation.start
 
   init: () =>
     super()
 
+    #parentNavElement = $(@element).parent().closest(".Navigation")
+    #console.log $(@element).parent()
+    #@parentNavigation = AnimationObject.byFullName[parentNavElement.data("fullName")]
+    #console.log "#{@parentNavigation.fullName} parent of #{@fullName}"
+
+    content = AnimationObject.byFullName[@meta.navigation.content]
+    viewportEl = if @isMain then null else $(@element).find(".viewport")[0]
+    @viewport = new NavigationViewport(content, viewportEl)
+
+    # Set the slides layer on top
+    @slidesLayer = content.slidesLayer # content is a slide, and has a slides layer
+    if @slidesLayer?
+      se = @slidesLayer.element
+      $(se).appendTo(se.parentNode)
+
+    @control = $(@element).find(".navigationControl")[0]
+    if @isMain
+      # Fix control on screen
+      m = actualMatrix(@control)
+      setTransform(@control, m)
+      svgNode.appendChild(@control)
+
     @_initUserNavigation()
     @_initNavigationControl()
 
-    @_setLock(@lock)
-    @_setShowViews(@showViews)
-    @_setActive(@viewport.isMain)
+    @_setLock(@meta.navigation.hasOwnProperty("lock") && @meta.navigation.lock != false)
+    @_setShowViews(@meta.navigation.hasOwnProperty("showViews") && @meta.navigation.showViews != false)
+    @_setActive(@isMain)
 
-    if @start?
-      @goTo(@start, true) # Go skipping animation
+    if @meta.navigation.start?
+      @goTo(@meta.navigation.start, true) # Go skipping animation
     else
       @_setCurrentSlide(null)
 
@@ -289,7 +286,7 @@ class Navigation extends AnimationObject
       anim.play()
 
   goTo: (dest, skipAnimation = false) =>
-    if not @animating
+    if @slideList.length > 0 and not @animating
       @_setCurrentSlide(dest)
       s = @slideList[dest]
 
@@ -352,6 +349,7 @@ class Navigation extends AnimationObject
       dest.center = v.center
       dest.animationObject = @viewport.currentState.animationObject
       @goToState(dest, skipAnimation)
+      @_setCurrentSlide(null)
     else
       @goTo(v, skipAnimation)
 

@@ -11,16 +11,22 @@ class AnimationObject
       name
 
   constructor: (@element, @meta, @width, @height, raw = false) ->
-    @namespace = @meta.namespace ? ""
+    @namespace = @meta.namespace
+
+    if typeof @namespace != "string"
+      @namespace = ""
+
     @name = @meta.name
 
     @fullName = AnimationObject.createFullName(@namespace, @name)
+
+    $(@element).data("fullName", @fullName)
 
     @reference = "##{@fullName}"
 
     if @name? # Ignore anonymous animation objects
       AnimationObject.byFullName[@fullName] = this
-    
+
     if @meta.raw?
       raw = @meta.raw
 

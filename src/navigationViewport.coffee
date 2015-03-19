@@ -1,22 +1,19 @@
 class NavigationViewport  extends AnimationObject
   @main: null # Static for the main viewport
 
-  constructor: (@layer, viewportEl) ->
-    contents = null
-
-    if @layer.isMain()
+  constructor: (content, viewportEl) ->
+    if content == Layer.main
       @isMain = true
       @clipElement = svgNode
 
       @viewportBaseState = new State()
       @viewportBaseState.center = [0,0] # To use the same default
 
-      contents = (l.element for l in @layer.children)
+      contentElements = (c.element for c in content.children)
     else
-      viewportMatrix = actualMatrix(viewportEl) # TODO Remove transformations of parent? Is needed?
+      viewportMatrix = actualMatrix(viewportEl, content.element.parentElement)
 
       snapViewport = svgElement("g")
-      NavigationViewport.main.element.appendChild(snapViewport)
 
       # Create group background
       bg = svgElement("rect")
@@ -27,7 +24,7 @@ class NavigationViewport  extends AnimationObject
         fill: "rgba(0,0,0,0)" # Transparent
       setTransform(bg, viewportMatrix)
 
-      # Clip the layer to the viewport
+      # Clip the content to the viewport
       clipRect = bg.cloneNode(false)
       clip = createClip(clipRect, snapViewport)
       applyClip(snapViewport, clip)
@@ -39,17 +36,17 @@ class NavigationViewport  extends AnimationObject
       @clipHeight = getFloatAttr(clipRect, "height", 0)
       @viewportBaseState = State.fromMatrix(viewportMatrix)
 
-      # Replace the layer with @clipElement, needed to keep z-order
-      $(@layer.element).replaceWith(@clipElement)
+      # Replace the content with @clipElement, needed to keep z-order
+      $(content.element).replaceWith(@clipElement)
 
-      contents = @layer.element
+      contentElements = content.element
 
     container = svgElement("g")
     @clipElement.appendChild(container)
 
-    super(container, {}, svgPageWidth, svgPageHeight, true) # Raw, no clipping or compensation
+    super(container, {}, content.width, content.height, true) # Raw, no clipping or compensation
 
-    $(@element).append(contents)
+    $(@element).append(contentElements)
 
     @setBase(new State())
 
