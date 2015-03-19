@@ -1,21 +1,33 @@
 
 initInkscape = () ->
-  setBackgroundColor()
   initInkscapeLayers()
+  createMainNavigation()
   processDefaultInkscapeMetaDescs()
 
-setBackgroundColor = () ->
-  background = document.querySelector("svg namedview").getAttribute("pagecolor")
-  # Create a really large centered rect as background
-  bg = svgElement("rect")
-  svgNode.appendChild(bg)
-  setAttrs bg,
-    id: "pageBackground"
+createMainNavigation = () ->
+  mainNavigation = svgElement("g")
+
+  viewport = svgElement("rect")
+  setAttrs viewport,
     x: -50000
     y: -50000
     width: 100000
     height: 100000
-    fill: background
+    fill: document.querySelector("svg namedview").getAttribute("pagecolor")
+    class: "viewport"
+  mainNavigation.appendChild(viewport)
+
+  control = $("#mainNavigation")[0]
+
+  desc = $(control).find("desc")[0]
+  mainNavigation.appendChild(desc)
+
+  control.setAttribute("class", "navigationControl")
+  m = actualMatrix(control)
+  setTransform(control, m)
+  mainNavigation.appendChild(control)
+
+  svgNode.appendChild(mainNavigation)
 
 initInkscapeLayers = () ->
 
@@ -30,7 +42,13 @@ initInkscapeLayers = () ->
     [].slice.call(layers)
 
   baseLayers = inkscapeLayersRecursive($("svg").first(), "layers")
-  Layer.main = new Layer(svgNode, "layers", "__main__", baseLayers)
+
+  mainLayerEl = svgElement("g")
+  svgNode.appendChild(mainLayerEl)
+  for l in baseLayers
+    mainLayerEl.appendChild(l.element)
+
+  Layer.main = new Layer(mainLayerEl, "layers", "__main__", baseLayers)
 
 processInkscapeMetaDescs = (base, callback) ->
   $(base).find("desc").each (idx, d) ->
@@ -55,8 +73,6 @@ processDefaultInkscapeMetaDescs = () ->
     else
       classes = "AnimationObject"
 
-    if meta.type?
-      classes = "#{classes} #{meta.type}"
     e.setAttribute("class", classes)
 
     metas.push([e, meta])

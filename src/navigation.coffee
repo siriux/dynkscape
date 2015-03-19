@@ -7,10 +7,10 @@ class Navigation extends AnimationObject
     if meta.navigation.content == Layer.main.fullName
       @isMain = true
       Navigation.main = this
-      super(svgNode, meta, svgPageWidth, svgPageHeight, true) # Raw
     else
       @isMain = false
-      super(element, meta)
+
+    super(element, meta, null, null, true)
 
     @slideList = []
 
@@ -23,8 +23,9 @@ class Navigation extends AnimationObject
     #console.log "#{@parentNavigation.fullName} parent of #{@fullName}"
 
     content = AnimationObject.byFullName[@meta.navigation.content]
-    viewportEl = if @isMain then null else $(@element).find(".viewport")[0]
-    @viewport = new NavigationViewport(content, viewportEl)
+    viewportEl = $(@element).find(".viewport")[0]
+
+    @viewport = new NavigationViewport(content, viewportEl, @element)
 
     # Set the slides layer on top
     @slidesLayer = content.slidesLayer # content is a slide, and has a slides layer
@@ -32,12 +33,7 @@ class Navigation extends AnimationObject
       se = @slidesLayer.element
       $(se).appendTo(se.parentNode)
 
-    @control = $(@element).find(".navigationControl")[0]
-    if @isMain
-      # Fix control on screen
-      m = actualMatrix(@control)
-      setTransform(@control, m)
-      svgNode.appendChild(@control)
+    @control = $(@element).children(".navigationControl")[0]
 
     @_initUserNavigation()
     @_initNavigationControl()
@@ -141,7 +137,6 @@ class Navigation extends AnimationObject
     @lockElement = $(@control).find(".lock")[0]
     @showViewsElement = $(@control).find(".showViews")[0]
     @fullViewElement = $(@control).find(".fullView")[0]
-
     @animationElements = [@playElement,@pauseElement,@playLabelElement,@animStartElement,@prevLabelElement,@currentLabelElement,@nextLabelElement,@animEndElement]
 
     $(@control).click () =>
@@ -178,7 +173,7 @@ class Navigation extends AnimationObject
       dragging = false
       panning = false
 
-    $(@viewport.clipElement)
+    $(@viewport.viewportElement)
       .mousemove (e) =>
         if not @lock
           if e.ctrlKey
@@ -315,7 +310,7 @@ class Navigation extends AnimationObject
     if not @animating
       @_setCurrentSlide(null)
 
-      @goToView(@viewport.getFullView(), false, false) # Don't skip animation, don't perform page centering
+      @goToState(@viewport.baseState, false, 1, "inout") # Don't skip animation, don't perform page centering
 
   saveReferenceState: () => newReferenceState(@reference)
 

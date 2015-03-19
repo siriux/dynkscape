@@ -1,82 +1,70 @@
 class NavigationViewport  extends AnimationObject
   @main: null # Static for the main viewport
 
-  constructor: (content, viewportEl) ->
-    if content == Layer.main
-      @isMain = true
-      @clipElement = svgNode
+  constructor: (content, viewportEl, @parent) ->
+    # Calculate matrices
+    viewportLocal = actualMatrix(viewportEl, viewportEl.parentElement) # Local, including x and y
+    viewportActual = actualMatrix(viewportEl)
+    contentLocal = actualMatrix(content.element, content.element.parentElement) # Local, including x and y
+    contentActual = actualMatrix(content.element)
+    viewportReal = viewportLocal.multiply(viewportActual.inverse())
+    contentReal = contentLocal.multiply(contentActual.inverse())
+    base = viewportReal.multiply(contentReal.inverse())
 
-      @viewportBaseState = new State()
-      @viewportBaseState.center = [0,0] # To use the same default
+    @viewportElement = svgElement("g")
 
-      contentElements = (c.element for c in content.children)
-    else
-      viewportMatrix = actualMatrix(viewportEl, content.element.parentElement)
+    # Create background
+    bg = svgElement("rect")
+    @viewportElement.appendChild(bg)
+    setAttrs bg,
+      width: getFloatAttr(viewportEl, "width")
+      height: getFloatAttr(viewportEl, "height")
+      fill: "rgba(0,0,0,0)" # Transparent
+    setTransform(bg, viewportLocal)
 
-      snapViewport = svgElement("g")
+    # Clip the content to the viewport
+    clipRect = bg.cloneNode(false)
+    clip = createClip(clipRect, @viewportElement)
+    applyClip(@viewportElement, clip)
+    @clipWidth = getFloatAttr(clipRect, "width", 0)
+    @clipHeight = getFloatAttr(clipRect, "height", 0)
 
-      # Create group background
-      bg = svgElement("rect")
-      snapViewport.appendChild(bg)
-      setAttrs bg,
-        width: getFloatAttr(viewportEl, "width")
-        height: getFloatAttr(viewportEl, "height")
-        fill: "rgba(0,0,0,0)" # Transparent
-      setTransform(bg, viewportMatrix)
-
-      # Clip the content to the viewport
-      clipRect = bg.cloneNode(false)
-      clip = createClip(clipRect, snapViewport)
-      applyClip(snapViewport, clip)
-
-      @isMain = false
-      @clipElement = snapViewport
-
-      @clipWidth = getFloatAttr(clipRect, "width", 0)
-      @clipHeight = getFloatAttr(clipRect, "height", 0)
-      @viewportBaseState = State.fromMatrix(viewportMatrix)
-
-      # Replace the content with @clipElement, needed to keep z-order
-      $(content.element).replaceWith(@clipElement)
-
-      contentElements = content.element
-
+    # Create container
     container = svgElement("g")
-    @clipElement.appendChild(container)
+    $(container).append(content.element)
+    @viewportElement.appendChild(container)
+
+    # Insert after viewportElement after original viewportEl
+    viewportEl.parentElement.insertBefore(@viewportElement, viewportEl.nextSibling)
 
     super(container, {}, content.width, content.height, true) # Raw, no clipping or compensation
 
-    $(@element).append(contentElements)
-
-    @setBase(new State())
-
-    @viewportBaseState.animationObject = this
-
-    if @isMain
+    if content == Layer.main
+      @isMain = true
       NavigationViewport.main = this
-
-  getFullView: () =>
-    fV = new AnimationObject(@element, {}, 0, 0, true)
-    fV.viewState = @viewportBaseState.clone()
-    fV.duration = 1
-    fV.easing = "inout"
-
-    if @isMain
-      fV.width = svgPageCorrectedWidth
-      fV.height = svgPageCorrectedHeight
     else
-      fV.width = @clipWidth
-      fV.height = @clipHeight
+      @isMain = false
 
-    fV
+    @setBase(State.fromMatrix(base))
+
+    @inverseViewState = # To convert views to states
+      if @isMain
+        new State()
+      else
+        State.fromMatrix(base.multiply(viewportActual))
+    @inverseViewState.animationObject = this
+
+
 
   getStateForMaximizedView: (view, centerPage = true) =>
-    s = view.viewState.diff(@viewportBaseState)
+    # TODO If not Main, cache states !
+
+    s = view.viewState.diff(@inverseViewState)
     s.animationObject = this
 
     # Modify rotate point to be the current translate (corner of the viewport)
-    cx = (@viewportBaseState.translateX - s.translateX) / svgPageWidth
-    cy = (@viewportBaseState.translateY - s.translateY) / svgPageHeight
+    cx = (@inverseViewState.translateX - s.translateX) / svgPageWidth
+    cy = (@inverseViewState.translateY - s.translateY) / svgPageHeight
     s.center = [cx, cy]
 
     # Get scale factors needed to fit viewport in either direction
@@ -103,11 +91,11 @@ class NavigationViewport  extends AnimationObject
     if scaleHorizontal > scaleVertical
       scaleFactor = scaleVertical
       # Center horizontally on viewport
-      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * @viewportBaseState.scaleX / 2
+      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * @inverseViewState.scaleX / 2
     else
       scaleFactor = scaleHorizontal
       # Center vertically on viewport
-      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * @viewportBaseState.scaleY / 2
+      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * @inverseViewState.scaleY / 2
 
     if @isMain and centerPage
       # Correct page centering on the viewport

@@ -20,6 +20,9 @@ class AnimationObject
 
     @fullName = AnimationObject.createFullName(@namespace, @name)
 
+    if @meta.type?
+      @element.setAttribute("class", "#{@meta.type} #{@element.getAttribute("class")}")
+
     $(@element).data("fullName", @fullName)
 
     @reference = "##{@fullName}"
