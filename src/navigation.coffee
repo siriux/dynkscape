@@ -162,11 +162,11 @@ class Navigation extends AnimationObject
     dragging = false
     panning = false
 
-    startMove = (e) =>
+    getTransformedPoint = (e) =>
       cursor =
         x: e.clientX
         y: e.clientY
-      prev = @viewport.transformPointToCurrent(cursor, true) # exclude own transform
+      @viewport.transformPointToCurrent(cursor, true) # exclude own transform
 
     stopMove = () =>
       dragging = false
@@ -177,23 +177,21 @@ class Navigation extends AnimationObject
         if not @lock
           if e.ctrlKey
             if not (dragging or panning)
-              startMove(e)
+              prev = getTransformedPoint(e)
             panning = true
           else
             panning = false
 
           if dragging or panning
-
-            cursor =
-              x: e.clientX
-              y: e.clientY
-            p = @viewport.transformPointToCurrent(cursor, true) # exclude own transform
+            p = getTransformedPoint(e)
 
             delta =
               x: p.x - prev.x
               y: p.y - prev.y
 
-            @viewport.translate(delta)
+            adjustedDelta = @viewport.baseState.scaleRotatePoint(delta)
+
+            @viewport.translate(adjustedDelta)
 
             prev = p
 
@@ -204,7 +202,7 @@ class Navigation extends AnimationObject
 
       .mousedown (e) =>
         if not @lock
-          startMove(e)
+          prev = getTransformedPoint(e)
           dragging = true
           false
 
