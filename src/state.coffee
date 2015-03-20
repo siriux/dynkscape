@@ -81,7 +81,13 @@ class State
       @center = c
 
   apply: () =>
+    ao = @animationObject
+    setTransform(ao.element, @getMatrix())
 
+    $(ao.origElement).css
+      opacity: @opacity
+
+  getMatrix: () =>
     # Calculate position on current center
     cp = @_calcCenterChange([0,0])
 
@@ -102,12 +108,7 @@ class State
       tx -= p.x - delta.x
       ty -= p.y - delta.y
 
-    # Apply transform
-
-    setTransform(ao.element, "translate(#{tx},#{ty}) scale(#{@scaleX},#{@scaleX}) rotate(#{@rotation})")
-
-    $(ao.origElement).css
-      opacity: @opacity
+    svgNode.createSVGMatrix().translate(tx, ty).scale(@scaleX, @scaleY).rotate(@rotation)
 
   transformPoint: (p) =>
     srp = @scaleRotatePoint(p)
@@ -162,6 +163,6 @@ class State
 
     s.opacity = @opacity
     s.center = @center
-    s.animationObject = null
+    s.animationObject = dest.animationObject
 
     s

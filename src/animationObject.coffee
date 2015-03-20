@@ -5,7 +5,7 @@ class AnimationObject
   @objects = []
 
   @createFullName: (namespace, name) ->
-    if namespace != ""
+    if namespace? and namespace != ""
       namespace + "." + name
     else
       name
@@ -33,6 +33,14 @@ class AnimationObject
     if @meta.raw?
       raw = @meta.raw
 
+    @origX = getFloatAttr(@element, "x", getFloatAttr(@element, "cx", 0))
+    @origY = getFloatAttr(@element, "y", getFloatAttr(@element, "cy", 0))
+
+    @globalOrigMatrix = globalMatrix(@element)
+    @localOrigMatrix = localMatrix(@element)
+    @actualOrigMatrix = actualMatrix(@element)
+    @externalOrigMatrix = globalMatrix(svgNode).inverse().multiply(@globalOrigMatrix).multiply(@localOrigMatrix.inverse())
+
     # Process variables
     if @meta.variables?
       for varName, value of @meta.variables
@@ -55,11 +63,8 @@ class AnimationObject
     # Raw AnimationObjects dont compensate, cannot be used as clipping or view, ...
     if not raw
 
-      # To be used as a view in navigations
-      @viewState = State.fromMatrix(actualMatrix(@element))
-
       # Base state
-      s = State.fromMatrix(localMatrix(@element))
+      s = State.fromMatrix(@localOrigMatrix)
       s.opacity = $(@element).css("opacity")
       s.animationObject = this
 

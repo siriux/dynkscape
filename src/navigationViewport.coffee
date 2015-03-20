@@ -1,15 +1,8 @@
 class NavigationViewport  extends AnimationObject
   @main: null # Static for the main viewport
 
-  constructor: (content, viewportEl, @parent) ->
-    # Calculate matrices
-    viewportLocal = actualMatrix(viewportEl, viewportEl.parentElement) # Local, including x and y
-    viewportActual = actualMatrix(viewportEl)
-    contentLocal = actualMatrix(content.element, content.element.parentElement) # Local, including x and y
-    contentActual = actualMatrix(content.element)
-    viewportReal = viewportLocal.multiply(viewportActual.inverse())
-    contentReal = contentLocal.multiply(contentActual.inverse())
-    base = viewportReal.multiply(contentReal.inverse())
+  constructor: (content, @viewportAO, @navigation) ->
+    viewportEl = @viewportAO.element
 
     @viewportElement = svgElement("g")
 
@@ -17,15 +10,17 @@ class NavigationViewport  extends AnimationObject
     bg = svgElement("rect")
     @viewportElement.appendChild(bg)
     setAttrs bg,
+      x: @viewportAO.origX
+      y: @viewportAO.origY
       width: getFloatAttr(viewportEl, "width")
       height: getFloatAttr(viewportEl, "height")
       fill: "rgba(0,0,0,0)" # Transparent
-    setTransform(bg, viewportLocal)
+    setTransform(bg, @viewportAO.localOrigMatrix)
 
     # Clip the content to the viewport
     clipRect = bg.cloneNode(false)
     clip = createClip(clipRect, @viewportElement)
-    applyClip(@viewportElement, clip)
+    #applyClip(@viewportElement, clip)
     @clipWidth = getFloatAttr(clipRect, "width", 0)
     @clipHeight = getFloatAttr(clipRect, "height", 0)
 
@@ -45,26 +40,17 @@ class NavigationViewport  extends AnimationObject
     else
       @isMain = false
 
-    @setBase(State.fromMatrix(base))
-
-    @inverseViewState = # To convert views to states
-      if @isMain
-        new State()
-      else
-        State.fromMatrix(base.multiply(viewportActual))
-    @inverseViewState.animationObject = this
-
-
+    @setBase(State.fromMatrix(@viewportAO.externalOrigMatrix.inverse())) # Undo the positioning done by nesting
 
   getStateForMaximizedView: (view, centerPage = true) =>
-    # TODO If not Main, cache states !
-
-    s = view.viewState.diff(@inverseViewState)
+    viewDiff = view.actualOrigMatrix
+    base = @viewportAO.externalOrigMatrix.inverse().multiply(@viewportAO.actualOrigMatrix)
+    s = State.fromMatrix(base.multiply(viewDiff.inverse()))
     s.animationObject = this
 
     # Modify rotate point to be the current translate (corner of the viewport)
-    cx = (@inverseViewState.translateX - s.translateX) / svgPageWidth
-    cy = (@inverseViewState.translateY - s.translateY) / svgPageHeight
+    cx = (@viewportAO.origX - s.translateX) / @width
+    cy = (@viewportAO.origY - s.translateY) / @height
     s.center = [cx, cy]
 
     # Get scale factors needed to fit viewport in either direction
@@ -91,11 +77,11 @@ class NavigationViewport  extends AnimationObject
     if scaleHorizontal > scaleVertical
       scaleFactor = scaleVertical
       # Center horizontally on viewport
-      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * @inverseViewState.scaleX / 2
+      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * matrixScaleX(@viewportAO.localOrigMatrix) / 2
     else
       scaleFactor = scaleHorizontal
       # Center vertically on viewport
-      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * @inverseViewState.scaleY / 2
+      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * matrixScaleY(@viewportAO.localOrigMatrix) / 2
 
     if @isMain and centerPage
       # Correct page centering on the viewport
@@ -112,33 +98,48 @@ class NavigationViewport  extends AnimationObject
 
     s
 
+  _parentNavigations: () =>
+    if not @_parentNavigationsCache?
+      @_parentNavigationsCache = []
+      $(@element).parent().parents(".Navigation").each (idx, e) =>
+        n = AnimationObject.byFullName[$(e).data("fullName")]
+        @_parentNavigationsCache.push n
+
+    @_parentNavigationsCache
+
+  transformPointToCurrent: (p, excludeOwn = false, isClient = true) =>
+    if isClient
+      # Center relative to page
+      p.x = (p.x - svgPageOffsetX) / svgPageScale
+      p.y = (p.y - svgPageOffsetY) / svgPageScale
+
+    for n, idx in @_parentNavigations() by -1
+
+      # Apply navigation transformation
+      navDiffState = n.currentState.diff(n.baseState)
+      p = navDiffState.transformPoint(p)
+
+      if not excludeOwn or idx > 0 # Ignore own transformation for translate
+        p = n.viewport.baseState.transformPoint(p)
+        p = n.viewport.currentState.transformPointInverse(p)
+
+    p
+
   _getCenterPoint: (p) =>
-    if not @isMain
-      p = NavigationViewport.main.currentState.transformPointInverse(p)
-
-    p = @currentState.transformPointInverse(p)
-
-    normalizeCX = p.x / svgPageWidth
-    normalizeCY = p.y / svgPageHeight
+    normalizeCX = p.x / @width
+    normalizeCY = p.y / @height
     [normalizeCX, normalizeCY]
 
-  translate: (x, y) =>
-    p =
-      x: x
-      y: y
-
-    if not @isMain
-      p = NavigationViewport.main.currentState.scaleRotatePointInverse(p)
-
+  translate: (p) =>
     s = @currentState
     s.translateX += p.x
     s.translateY += p.y
     s.apply()
 
-  scale: (scale, cx, cy) =>
+  scale: (scale, center) =>
     s = @currentState
 
-    s.changeCenter(@_getCenterPoint(x: cx, y: cy))
+    s.changeCenter(@_getCenterPoint(center))
 
     s.scaleX *= scale
     s.scaleY *= scale
@@ -147,10 +148,10 @@ class NavigationViewport  extends AnimationObject
 
     s.apply()
 
-  rotate: (rotation, cx, cy) =>
+  rotate: (rotation, center) =>
     s = @currentState
 
-    s.changeCenter(@_getCenterPoint(x: cx, y: cy))
+    s.changeCenter(@_getCenterPoint(center))
 
     s.rotation += rotation
 

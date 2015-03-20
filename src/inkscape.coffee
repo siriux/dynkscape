@@ -11,10 +11,18 @@ createMainNavigation = () ->
   setAttrs viewport,
     x: -50000
     y: -50000
-    width: 100000
-    height: 100000
+    width: 100000 + svgPageWidth
+    height: 100000 + svgPageHeight
     fill: document.querySelector("svg namedview").getAttribute("pagecolor")
     class: "viewport"
+  viewportDesc = svgElement("desc")
+  viewportDesc.innerHTML = """
+    # Meta
+    namespace: __auto__
+    name: viewport
+    raw: true
+  """
+  viewport.appendChild(viewportDesc)
   mainNavigation.appendChild(viewport)
 
   control = $("#mainNavigation")[0]

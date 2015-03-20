@@ -12,20 +12,18 @@ class Navigation extends AnimationObject
 
     super(element, meta, null, null, true)
 
+    @setBase(State.fromMatrix(localMatrix(@element)))
+
     @slideList = []
 
   init: () =>
     super()
 
-    #parentNavElement = $(@element).parent().closest(".Navigation")
-    #console.log $(@element).parent()
-    #@parentNavigation = AnimationObject.byFullName[parentNavElement.data("fullName")]
-    #console.log "#{@parentNavigation.fullName} parent of #{@fullName}"
-
     content = AnimationObject.byFullName[@meta.navigation.content]
-    viewportEl = $(@element).find(".viewport")[0]
 
-    @viewport = new NavigationViewport(content, viewportEl, @element)
+    viewportAO = AnimationObject.byFullName["#{@fullName}.viewport"]
+
+    @viewport = new NavigationViewport(content, viewportAO, this)
 
     # Set the slides layer on top
     @slidesLayer = content.slidesLayer # content is a slide, and has a slides layer
@@ -160,14 +158,15 @@ class Navigation extends AnimationObject
     $(@fullViewElement).click () => @goFull()
 
   _initUserNavigation: () ->
-    prevX = 0
-    prevY = 0
+    prev = null
     dragging = false
     panning = false
 
     startMove = (e) =>
-      prevX = e.clientX
-      prevY = e.clientY
+      cursor =
+        x: e.clientX
+        y: e.clientY
+      prev = @viewport.transformPointToCurrent(cursor, true) # exclude own transform
 
     stopMove = () =>
       dragging = false
@@ -184,16 +183,19 @@ class Navigation extends AnimationObject
             panning = false
 
           if dragging or panning
-            x = e.clientX
-            y = e.clientY
 
-            dx = (x - prevX) / svgPageScale
-            dy = (y - prevY) / svgPageScale
+            cursor =
+              x: e.clientX
+              y: e.clientY
+            p = @viewport.transformPointToCurrent(cursor, true) # exclude own transform
 
-            @viewport.translate(dx,dy)
+            delta =
+              x: p.x - prev.x
+              y: p.y - prev.y
 
-            prevX = x
-            prevY = y
+            @viewport.translate(delta)
+
+            prev = p
 
             @_setCurrentSlide(null)
             @updateReferenceState()
@@ -226,19 +228,16 @@ class Navigation extends AnimationObject
           delta = 0.5 if delta > 0.5
           delta = -0.5 if delta < -0.5
 
-          x = e.clientX
-          y = e.clientY
-
-          # Center relative to page
-          cx = (x - svgPageOffsetX) / svgPageScale
-          cy = (y - svgPageOffsetY) / svgPageScale
+          center = @viewport.transformPointToCurrent
+            x: e.clientX
+            y: e.clientY
 
           if e.altKey # Rotate instead of zoom when Alt is pressed
             rotation = delta * 20
-            @viewport.rotate(rotation, cx, cy)
+            @viewport.rotate(rotation, center)
           else
             scale = 1 + delta
-            @viewport.scale(scale, cx, cy)
+            @viewport.scale(scale, center)
 
           @_setCurrentSlide(null)
           @updateReferenceState()
