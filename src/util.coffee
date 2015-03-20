@@ -61,7 +61,7 @@ actualMatrix = (element, base) -> # Actual matrix with respect to base, includin
   x = getFloatAttr(element, "x", 0)
   y = getFloatAttr(element, "y", 0)
 
-  baseMatrix.inverse().multiply(elementMatrix).translate(x, y)
+  baseMatrix.inverse().multiply(elementMatrix.translate(x, y))
 
 matrixScaleX = (matrix) -> Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b)
 

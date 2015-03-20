@@ -20,7 +20,7 @@ class NavigationViewport  extends AnimationObject
     # Clip the content to the viewport
     clipRect = bg.cloneNode(false)
     clip = createClip(clipRect, @viewportElement)
-    #applyClip(@viewportElement, clip)
+    applyClip(@viewportElement, clip)
     @clipWidth = getFloatAttr(clipRect, "width", 0)
     @clipHeight = getFloatAttr(clipRect, "height", 0)
 
@@ -37,21 +37,30 @@ class NavigationViewport  extends AnimationObject
     if content == Layer.main
       @isMain = true
       NavigationViewport.main = this
+      @baseViewState = new State()
     else
       @isMain = false
+      @baseViewState = State.fromMatrix(@viewportAO.externalOrigMatrix.inverse().multiply(@viewportAO.actualOrigMatrix))
+
+    @baseViewState.animationObject = this
 
     @setBase(State.fromMatrix(@viewportAO.externalOrigMatrix.inverse())) # Undo the positioning done by nesting
 
   getStateForMaximizedView: (view, centerPage = true) =>
-    viewDiff = view.actualOrigMatrix
-    base = @viewportAO.externalOrigMatrix.inverse().multiply(@viewportAO.actualOrigMatrix)
-    s = State.fromMatrix(base.multiply(viewDiff.inverse()))
-    s.animationObject = this
+    s = @baseViewState.clone()
 
-    # Modify rotate point to be the current translate (corner of the viewport)
-    cx = (@viewportAO.origX - s.translateX) / @width
-    cy = (@viewportAO.origY - s.translateY) / @height
+    viewState = State.fromMatrix(actualMatrix(view.origElement, @element))
+    s.translateX -= viewState.translateX
+    s.translateY -= viewState.translateY
+
+    cx = viewState.translateX / @width
+    cy = viewState.translateY / @height
     s.center = [cx, cy]
+
+    s.scaleX /= viewState.scaleX
+    s.scaleY /= viewState.scaleY
+
+    s.rotation -= viewState.rotation
 
     # Get scale factors needed to fit viewport in either direction
     viewportWidth =
@@ -67,6 +76,7 @@ class NavigationViewport  extends AnimationObject
 
     viewportProportions = viewportWidth / viewportHeight
 
+    # TODO Calculate live !!!
     scaleHorizontal = viewportWidth / view.width
     scaleVertical = viewportHeight / view.height
 
