@@ -10,7 +10,7 @@
     - text: align, process
     - clip: clipName
     - slide: num, duration, easing
-    - navigation: layer, start, showViews, lock
+    - navigation: layer, start, showSlides, lock
     - vars: // To define user variables
       $var1: ...
     - animations:

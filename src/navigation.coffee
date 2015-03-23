@@ -14,7 +14,7 @@ class Navigation extends AnimationObject
 
     @setBase(State.fromMatrix(localMatrix(@element)))
 
-    @slideList = []
+    @viewList = []
 
   init: () =>
     super()
@@ -37,13 +37,13 @@ class Navigation extends AnimationObject
     @_initNavigationControl()
 
     @_setLock(@meta.navigation.hasOwnProperty("lock") && @meta.navigation.lock != false)
-    @_setShowViews(@meta.navigation.hasOwnProperty("showViews") && @meta.navigation.showViews != false)
+    @_setShowSlides(@meta.navigation.hasOwnProperty("showSlides") && @meta.navigation.showSlides != false)
     @_setActive(@isMain)
 
     if @meta.navigation.start?
       @goTo(@meta.navigation.start, true) # Go skipping animation
     else
-      @_setCurrentSlide(null)
+      @_setCurrentView(null)
 
   _setLock: (isLocked) =>
     @lock = isLocked
@@ -52,13 +52,13 @@ class Navigation extends AnimationObject
     else
       $(@lockElement).css(opacity: 0.1)
 
-  _setShowViews: (areShown) =>
-    @showViews = areShown
+  _setShowSlides: (areShown) =>
+    @showSlides = areShown
     if areShown and @slidesLayer?
-      $(@showViewsElement).css(opacity: 1)
+      $(@showSlidesElement).css(opacity: 1)
       @slidesLayer.show()
     else
-      $(@showViewsElement).css(opacity: 0.1)
+      $(@showSlidesElement).css(opacity: 0.1)
       @slidesLayer?.hide()
 
   _setActive: (isActive) =>
@@ -68,37 +68,37 @@ class Navigation extends AnimationObject
     else
       $(@activeCueElement).css(opacity: 0.1)
 
-  _setCurrentSlide: (n) =>
+  _setCurrentView: (n) =>
     @currentView = n
-    @currentSlideElementText?.textContent = if n? then n else "-"
+    @currentViewElementText?.textContent = if n? then n else "-"
 
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
+    s = @viewList[@currentView]
+    if s?.mainAnimation?
       $(@animationElements).css(opacity: 1)
-      s.slideAnimation.labelChangedCallback = @_updateCurrentLabel
-      s.slideAnimation.goStart()
+      s.mainAnimation.labelChangedCallback = @_updateCurrentLabel
+      s.mainAnimation.goStart()
     else
       $(@animationElements).css(opacity: 0.1)
       @currentLabelElementText?.textContent = "-"
 
     if not n? or n == 0
-      $(@prevSlideElement).css(opacity: 0.1)
+      $(@prevViewElement).css(opacity: 0.1)
     else
-      $(@prevSlideElement).css(opacity: 1)
+      $(@prevViewElement).css(opacity: 1)
 
-    if not n? or n == @slideList.length - 1
-      $(@nextSlideElement).css(opacity: 0.1)
+    if not n? or n == @viewList.length - 1
+      $(@nextViewElement).css(opacity: 0.1)
     else
-      $(@nextSlideElement).css(opacity: 1)
+      $(@nextViewElement).css(opacity: 1)
 
     if not n?
-      $(@currentSlideElementText).css(opacity: 0.1)
+      $(@currentViewElementText).css(opacity: 0.1)
     else
-      $(@currentSlideElementText).css(opacity: 1)
+      $(@currentViewElementText).css(opacity: 1)
 
   _updateCurrentLabel: (n) =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
+    s = @viewList[@currentView]
+    if s?.mainAnimation?
       @currentLabelElementText?.textContent = n
 
       if n == 0
@@ -108,7 +108,7 @@ class Navigation extends AnimationObject
         $(@prevLabelElement).css(opacity: 1)
         $(@animStartElement).css(opacity: 1)
 
-      if n == s.slideAnimation.labels.length - 1
+      if n == s.mainAnimation.labels.length - 1
         $(@nextLabelElement).css(opacity: 0.1)
         $(@animEndElement).css(opacity: 0.1)
       else
@@ -118,11 +118,11 @@ class Navigation extends AnimationObject
   _initNavigationControl: () ->
 
     @activeCueElement = $(@control).find(".activeCue")[0]
-    @homeSlideElement = $(@control).find(".homeSlide")[0]
-    @prevSlideElement = $(@control).find(".prevSlide")[0]
-    @currentSlideElement = $(@control).find(".currentSlide")[0]
-    @currentSlideElementText = $(@currentSlideElement).find("tspan")[0]
-    @nextSlideElement = $(@control).find(".nextSlide")[0]
+    @homeViewElement = $(@control).find(".homeSlide")[0]
+    @prevViewElement = $(@control).find(".prevSlide")[0]
+    @currentViewElement = $(@control).find(".currentSlide")[0]
+    @currentViewElementText = $(@currentViewElement).find("tspan")[0]
+    @nextViewElement = $(@control).find(".nextSlide")[0]
     @playElement = $(@control).find(".play")[0]
     @pauseElement = $(@control).find(".pause").hide()[0]
     @playLabelElement = $(@control).find(".playLabel")[0]
@@ -133,7 +133,7 @@ class Navigation extends AnimationObject
     @nextLabelElement = $(@control).find(".nextLabel")[0]
     @animEndElement = $(@control).find(".animEnd")[0]
     @lockElement = $(@control).find(".lock")[0]
-    @showViewsElement = $(@control).find(".showViews")[0]
+    @showSlidesElement = $(@control).find(".showViews")[0]
     @fullViewElement = $(@control).find(".fullView")[0]
     @animationElements = [@playElement,@pauseElement,@playLabelElement,@animStartElement,@prevLabelElement,@currentLabelElement,@nextLabelElement,@animEndElement]
 
@@ -141,9 +141,9 @@ class Navigation extends AnimationObject
       Navigation.active._setActive(false)
       @_setActive(true)
 
-    $(@homeSlideElement).click () => @goTo(0)
-    $(@prevSlideElement).click () => @goPrev()
-    $(@nextSlideElement).click () => @goNext()
+    $(@homeViewElement).click () => @goTo(0)
+    $(@prevViewElement).click () => @goPrev()
+    $(@nextViewElement).click () => @goNext()
 
     $(@playElement).click () => @viewPlay()
     $(@pauseElement).click () => @viewPause()
@@ -154,7 +154,7 @@ class Navigation extends AnimationObject
     $(@animEndElement).click () => @viewAnimEnd()
 
     $(@lockElement).click () => @_setLock(not @lock)
-    $(@showViewsElement).click () => @_setShowViews(not @showViews)
+    $(@showSlidesElement).click () => @_setShowSlides(not @showSlides)
     $(@fullViewElement).click () => @goFull()
 
   _initUserNavigation: () ->
@@ -195,7 +195,7 @@ class Navigation extends AnimationObject
 
             prev = p
 
-            @_setCurrentSlide(null)
+            @_setCurrentView(null)
             @updateReferenceState()
 
             false
@@ -237,7 +237,7 @@ class Navigation extends AnimationObject
             scale = 1 + delta
             @viewport.scale(scale, center)
 
-          @_setCurrentSlide(null)
+          @_setCurrentView(null)
           @updateReferenceState()
 
           false # Avoid zooming on windows if ctrl is pressed
@@ -278,15 +278,15 @@ class Navigation extends AnimationObject
       anim.play()
 
   goTo: (dest, skipAnimation = false) =>
-    if @slideList.length > 0 and not @animating
-      @_setCurrentSlide(dest)
-      s = @slideList[dest]
+    if @viewList.length > 0 and not @animating
+      @_setCurrentView(dest)
+      s = @viewList[dest]
 
       if s?
         @goToView(s, skipAnimation)
 
   goPrev: () =>
-    if @slideList.length > 0
+    if @viewList.length > 0
       n = @currentView
       if n?
         n -= 1
@@ -295,17 +295,17 @@ class Navigation extends AnimationObject
         @goTo(n)
 
   goNext: () =>
-    if @slideList.length > 0
+    if @viewList.length > 0
       n = @currentView
       if n?
         n += 1
-        if n > @slideList.length - 1
-          n = @slideList.length - 1
+        if n > @viewList.length - 1
+          n = @viewList.length - 1
         @goTo(n)
 
   goFull: () =>
     if not @animating
-      @_setCurrentSlide(null)
+      @_setCurrentView(null)
 
       @goToState(@viewport.baseState, false, 1, "inout") # Don't skip animation, don't perform page centering
 
@@ -326,7 +326,7 @@ class Navigation extends AnimationObject
           center: viewState.center
 
       # TODO Save Active
-      # TODO Save lock, showViews
+      # TODO Save lock, showSlides
       # TODO Animation state
 
   applyReferenceState: (s, skipAnimation = false) =>
@@ -341,49 +341,49 @@ class Navigation extends AnimationObject
       dest.center = v.center
       dest.animationObject = @viewport.currentState.animationObject
       @goToState(dest, skipAnimation)
-      @_setCurrentSlide(null)
+      @_setCurrentView(null)
     else
       @goTo(v, skipAnimation)
 
   viewPlay: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
       $(@pauseElement).show()
       $(@playElement).hide()
-      s.slideAnimation.play () =>
+      v.mainAnimation.play () =>
         $(@pauseElement).hide()
         $(@playElement).show()
 
 
   viewPause: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
       $(@pauseElement).hide()
       $(@playElement).show()
-      s.slideAnimation.pause()
+      v.mainAnimation.pause()
 
   viewPlayLabel: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
       @viewPause()
-      s.slideAnimation.playLabel()
+      v.mainAnimation.playLabel()
 
   viewAnimStart: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
-      s.slideAnimation.goStart()
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
+      v.mainAnimation.goStart()
 
   viewAnimEnd: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
-      s.slideAnimation.goEnd()
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
+      v.mainAnimation.goEnd()
 
   viewPrevLabel: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
-      s.slideAnimation.prevLabel()
+    v = @viewList[@currentView]
+    if s?.mainAnimation?
+      v.mainAnimation.prevLabel()
 
   viewNextLabel: () =>
-    s = @slideList[@currentView]
-    if s?.slideAnimation?
-      s.slideAnimation.nextLabel()
+    v = @viewList[@currentView]
+    if v?.mainAnimation?
+      v.mainAnimation.nextLabel()

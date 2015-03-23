@@ -33,6 +33,8 @@ class AnimationObject
     if @meta.raw?
       raw = @meta.raw
 
+    @index = @meta.index
+
     @origX = getFloatAttr(@element, "x", getFloatAttr(@element, "cx", 0))
     @origY = getFloatAttr(@element, "y", getFloatAttr(@element, "cy", 0))
 
@@ -98,10 +100,22 @@ class AnimationObject
       @setBase(s)
 
   init: () =>
+    # Set as view on navigation, if an index is provided
+    if @index?
+      @navigation = AnimationObject.byFullName[@namespace]
+      @navigation.viewList[@index] = this
+
+      $(@element).click () =>
+        @navigation.goTo(@index)
+        @navigation._setShowSlides(false) # Even if it's not a slide itself
+      @element.setAttribute("cursor", "pointer")
+
     # Init animations
     if @animations?
       for anim in @animations
         anim.init()
+
+    @mainAnimation = Animation.byFullName[@fullName + ".main"]
 
   setBase: (state) =>
     state.animationObject = this
