@@ -12,8 +12,8 @@ class NavigationViewport  extends AnimationObject
     bg = svgElement("rect")
     @viewportElement.appendChild(bg)
     setAttrs bg,
-      x: @viewportAO.origX
-      y: @viewportAO.origY
+      x: @viewportAO.origOffset.x
+      y: @viewportAO.origOffset.y
       width: @viewportWidth
       height: @viewportHeight
       fill: "rgba(0,0,0,0)" # Transparent
@@ -49,18 +49,25 @@ class NavigationViewport  extends AnimationObject
   getStateForMaximizedView: (view, centerPage = true) =>
     s = @baseViewState.clone()
 
-    viewState = State.fromMatrix(actualMatrix(view.origElement, @element))
-    s.translateX -= viewState.translateX
-    s.translateY -= viewState.translateY
+    # TODO Add some margin as an option on the view object?
 
-    cx = viewState.translateX / @width
-    cy = viewState.translateY / @height
-    s.center = [cx, cy]
+    orig = view.currentState.transformPoint(view.origOffset)
 
-    s.rotation -= view.currentState.rotation
+    if view.compensateDelta?
+      orig.x += view.compensateDelta.x
+      orig.y += view.compensateDelta.y
 
     viewWidth = view.width
     viewHeight = view.height
+
+    s.translateX -= orig.x
+    s.translateY -= orig.y
+
+    cx = orig.x / @width
+    cy = orig.y / @height
+    s.center = [cx, cy]
+
+    s.rotation -= view.currentState.rotation
 
     viewportWidth = if @isMain then svgPageCorrectedWidth else @viewportWidth
     viewportHeight = if @isMain then svgPageCorrectedHeight else @viewportHeight

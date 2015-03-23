@@ -54,7 +54,7 @@ class State
     s
 
   @_rotatePoint: (p, degress) ->
-    radians = degress * (Math.PI / 180)
+    radians = toRadians(degress)
     sin = Math.sin(radians)
     cos = Math.cos(radians)
 
@@ -87,14 +87,7 @@ class State
     $(ao.origElement).css
       opacity: @opacity
 
-  getMatrix: () =>
-    # Calculate position on current center
-    cp = @_calcCenterChange([0,0])
-
-    # Apply center
-    tx = @translateX + cp.x
-    ty = @translateY + cp.y
-
+  getCompensationDelta: () =>
     # Compensate groups
     # This is needed if group children doesn't start at group origin
     # In this case, ao.delta from origin to real children origin is scaled/rotated
@@ -102,11 +95,25 @@ class State
     ao = @animationObject
     if ao.compensateDelta?
       delta = ao.compensateDelta
-      s = ao.baseState.diff(this) # State wrt base
+      s = ao.baseState.diff(this) # Substract base state
       p = s.scaleRotatePoint(delta)
 
-      tx -= p.x - delta.x
-      ty -= p.y - delta.y
+      x: p.x - delta.x
+      y: p.y - delta.y
+    else
+      x: 0
+      y: 0
+
+  getMatrix: () =>
+    # Calculate position on current center
+    cp = @_calcCenterChange([0,0])
+
+    # Get compensation
+    cd = @getCompensationDelta()
+
+    # Apply center and compensation delta
+    tx = @translateX + cp.x - cd.x
+    ty = @translateY + cp.y - cd.y
 
     svgNode.createSVGMatrix().translate(tx, ty).scale(@scaleX, @scaleY).rotate(@rotation)
 
@@ -146,6 +153,21 @@ class State
     sY = p.y / @scaleY
 
     State._rotatePoint((x: sX, y: sY), -@rotation)
+
+  rotatePoint: (p) =>
+    State._rotatePoint(p, @rotation)
+
+
+  rotatePointInverse: (p) =>
+    State._rotatePoint(p, -@rotation)
+
+  scalePoint: (p) =>
+    x: p.x * @scaleX
+    y: p.y * @scaleY
+
+  scalePointInverse: (p) =>
+    sX = p.x / @scaleX
+    sY = p.y / @scaleY
 
   diff: (dest) =>
     # If dest center is not the right one, change it before diffing

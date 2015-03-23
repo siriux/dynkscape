@@ -35,8 +35,9 @@ class AnimationObject
 
     @index = @meta.index
 
-    @origX = getFloatAttr(@element, "x", getFloatAttr(@element, "cx", 0))
-    @origY = getFloatAttr(@element, "y", getFloatAttr(@element, "cy", 0))
+    @origOffset =
+      x: getFloatAttr(@element, "x", getFloatAttr(@element, "cx", 0))
+      y: getFloatAttr(@element, "y", getFloatAttr(@element, "cy", 0))
 
     @globalOrigMatrix = globalMatrix(@element)
     @localOrigMatrix = localMatrix(@element)
@@ -73,17 +74,15 @@ class AnimationObject
       box = @element.getBBox()
 
       if not (@width? and @height?)
-        @width = getFloatAttr(@element, "width")
-        @height = getFloatAttr(@element, "height")
-        if isNaN(@width) or isNaN(@height)
-          @width = box.width
-          @height = box.height
+        @width = box.width * s.scaleX
+        @height = box.height * s.scaleY
 
       # To compensate offset of objects inside a group
-      trfP = s.transformPoint(box)
-      @compensateDelta =
-        x: trfP.x - s.translateX
-        y: trfP.y - s.translateY
+      if @element.nodeName == "g"
+        trfP = s.transformPoint(box)
+        @compensateDelta =
+          x: trfP.x - s.translateX - @origOffset.x
+          y: trfP.y - s.translateY - @origOffset.y
 
       # fromMatrix has de wrong default center
       s.changeCenter([0.5, 0.5])
@@ -113,7 +112,7 @@ class AnimationObject
     # Init animations
     if @animations?
       for anim in @animations
-        anim.init()
+        anim.init() # FIXME We cannot init this here, we have to wait until every object has been initialized
 
     @mainAnimation = Animation.byFullName[@fullName + ".main"]
 

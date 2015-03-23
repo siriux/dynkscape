@@ -125,3 +125,5 @@ stringCmp = (a, b) ->
     1
   else
     0
+
+toRadians = (degress) -> degress * (Math.PI / 180)

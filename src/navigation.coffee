@@ -40,6 +40,7 @@ class Navigation extends AnimationObject
     @_setShowSlides(@meta.navigation.hasOwnProperty("showSlides") && @meta.navigation.showSlides != false)
     @_setActive(@isMain)
 
+    # FIXME This cannot be done here, we need to initialize every object first
     if @meta.navigation.start?
       @goTo(@meta.navigation.start, true) # Go skipping animation
     else
