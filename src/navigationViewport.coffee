@@ -3,6 +3,8 @@ class NavigationViewport  extends AnimationObject
 
   constructor: (content, @viewportAO, @navigation) ->
     viewportEl = @viewportAO.element
+    @viewportWidth = getFloatAttr(viewportEl, "width", 0)
+    @viewportHeight = getFloatAttr(viewportEl, "height", 0)
 
     @viewportElement = svgElement("g")
 
@@ -12,8 +14,8 @@ class NavigationViewport  extends AnimationObject
     setAttrs bg,
       x: @viewportAO.origX
       y: @viewportAO.origY
-      width: getFloatAttr(viewportEl, "width")
-      height: getFloatAttr(viewportEl, "height")
+      width: @viewportWidth
+      height: @viewportHeight
       fill: "rgba(0,0,0,0)" # Transparent
     setTransform(bg, @viewportAO.localOrigMatrix)
 
@@ -21,8 +23,6 @@ class NavigationViewport  extends AnimationObject
     clipRect = bg.cloneNode(false)
     clip = createClip(clipRect, @viewportElement)
     applyClip(@viewportElement, clip)
-    @clipWidth = getFloatAttr(clipRect, "width", 0)
-    @clipHeight = getFloatAttr(clipRect, "height", 0)
 
     # Create container
     container = svgElement("g")
@@ -57,28 +57,18 @@ class NavigationViewport  extends AnimationObject
     cy = viewState.translateY / @height
     s.center = [cx, cy]
 
-    s.scaleX /= viewState.scaleX
-    s.scaleY /= viewState.scaleY
+    s.rotation -= view.currentState.rotation
 
-    s.rotation -= viewState.rotation
+    viewWidth = view.width
+    viewHeight = view.height
 
-    # Get scale factors needed to fit viewport in either direction
-    viewportWidth =
-      if @isMain
-        svgPageCorrectedWidth
-      else
-        @clipWidth
-    viewportHeight =
-      if @isMain
-        svgPageCorrectedHeight
-      else
-        @clipHeight
+    viewportWidth = if @isMain then svgPageCorrectedWidth else @viewportWidth
+    viewportHeight = if @isMain then svgPageCorrectedHeight else @viewportHeight
 
     viewportProportions = viewportWidth / viewportHeight
 
-    # TODO Calculate live !!!
-    scaleHorizontal = viewportWidth / view.width
-    scaleVertical = viewportHeight / view.height
+    scaleHorizontal = viewportWidth / viewWidth
+    scaleVertical = viewportHeight / viewHeight
 
     scaleFactor = null # Final scale factor
     tx = 0
@@ -87,11 +77,11 @@ class NavigationViewport  extends AnimationObject
     if scaleHorizontal > scaleVertical
       scaleFactor = scaleVertical
       # Center horizontally on viewport
-      tx = ((view.height * viewportProportions) - view.width) * scaleFactor * matrixScaleX(@viewportAO.localOrigMatrix) / 2
+      tx = ((viewHeight * viewportProportions) - viewWidth) * scaleFactor * matrixScaleX(@viewportAO.localOrigMatrix) / 2
     else
       scaleFactor = scaleHorizontal
       # Center vertically on viewport
-      ty = ((view.width / viewportProportions) - view.height) * scaleFactor * matrixScaleY(@viewportAO.localOrigMatrix) / 2
+      ty = ((viewWidth / viewportProportions) - viewHeight) * scaleFactor * matrixScaleY(@viewportAO.localOrigMatrix) / 2
 
     if @isMain and centerPage
       # Correct page centering on the viewport
