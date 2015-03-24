@@ -62,9 +62,11 @@ class State
     y: p.x*sin + p.y*cos
 
   _calcCenterChange: (c) =>
+    ao = @animationObject
+
     vec =
-      x: (c[0] - @center[0]) * @animationObject.width
-      y: (c[1] - @center[1]) * @animationObject.height
+      x: (c[0] - @center[0]) * ao.width
+      y: (c[1] - @center[1]) * ao.height
 
     trans = @scaleRotatePoint(vec)
 

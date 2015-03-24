@@ -72,20 +72,9 @@ class AnimationObject
       s.animationObject = this
 
       box = @element.getBBox()
-
       if not (@width? and @height?)
-        @width = box.width * s.scaleX
-        @height = box.height * s.scaleY
-
-      # To compensate offset of objects inside a group
-      if @element.nodeName == "g"
-        trfP = s.transformPoint(box)
-        @compensateDelta =
-          x: trfP.x - s.translateX - @origOffset.x
-          y: trfP.y - s.translateY - @origOffset.y
-
-      # fromMatrix has de wrong default center
-      s.changeCenter([0.5, 0.5])
+        @width = box.width
+        @height = box.height
 
       # Wrap in a group
       @origElement = @element
@@ -97,6 +86,13 @@ class AnimationObject
 
       # Set base state on the group
       @setBase(s)
+
+      # To compensate offset of objects inside the group
+      trfP = s.transformPoint(@element.getBBox())
+      @foo = trfP
+      @compensateDelta =
+        x: trfP.x - s.translateX
+        y: trfP.y - s.translateY
 
   init: () =>
     # Set as view on navigation, if an index is provided
@@ -136,3 +132,13 @@ class AnimationObject
   applyProvisional: () =>
     @provisionalState.apply()
     @provisionalState = null
+
+  currentDimensions: () =>
+    if @currentState?
+      p = @currentState.scalePoint((x: @width, y: @height))
+
+      width: p.x
+      height: p.y
+    else
+      width: @width
+      height: @height

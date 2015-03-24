@@ -32,7 +32,10 @@ class NavigationViewport  extends AnimationObject
     # Insert after viewportElement after original viewportEl
     viewportEl.parentElement.insertBefore(@viewportElement, viewportEl.nextSibling)
 
-    super(container, {}, content.width, content.height, true) # Raw, no clipping or compensation
+    contentDimensions = content.currentDimensions()
+
+    # Raw, no clipping or compensation
+    super(container, {}, contentDimensions.width, contentDimensions.height, true)
 
     if content == Layer.main
       @isMain = true
@@ -51,14 +54,16 @@ class NavigationViewport  extends AnimationObject
 
     # TODO Add some margin as an option on the view object?
 
-    orig = view.currentState.transformPoint(view.origOffset)
+    orig = # Raw delta from transformed BBox
+      x: view.compensateDelta.x + view.baseState.translateX
+      y: view.compensateDelta.y + view.baseState.translateY
 
-    if view.compensateDelta?
-      orig.x += view.compensateDelta.x
-      orig.y += view.compensateDelta.y
+    # FIXME This is wrong !!!
+    #currentDelta = view.currentState.getCompensationDelta()
+    #orig.x -= currentDelta.x
+    #orig.y -= currentDelta.y
 
-    viewWidth = view.width
-    viewHeight = view.height
+    viewDimensions = view.currentDimensions()
 
     s.translateX -= orig.x
     s.translateY -= orig.y
@@ -74,8 +79,8 @@ class NavigationViewport  extends AnimationObject
 
     viewportProportions = viewportWidth / viewportHeight
 
-    scaleHorizontal = viewportWidth / viewWidth
-    scaleVertical = viewportHeight / viewHeight
+    scaleHorizontal = viewportWidth / viewDimensions.width
+    scaleVertical = viewportHeight / viewDimensions.height
 
     scaleFactor = null # Final scale factor
     tx = 0
@@ -84,11 +89,11 @@ class NavigationViewport  extends AnimationObject
     if scaleHorizontal > scaleVertical
       scaleFactor = scaleVertical
       # Center horizontally on viewport
-      tx = ((viewHeight * viewportProportions) - viewWidth) * scaleFactor * matrixScaleX(@viewportAO.localOrigMatrix) / 2
+      tx = ((viewDimensions.height * viewportProportions) - viewDimensions.width) * scaleFactor * matrixScaleX(@viewportAO.localOrigMatrix) / 2
     else
       scaleFactor = scaleHorizontal
       # Center vertically on viewport
-      ty = ((viewWidth / viewportProportions) - viewHeight) * scaleFactor * matrixScaleY(@viewportAO.localOrigMatrix) / 2
+      ty = ((viewDimensions.width / viewportProportions) - viewDimensions.height) * scaleFactor * matrixScaleY(@viewportAO.localOrigMatrix) / 2
 
     if @isMain and centerPage
       # Correct page centering on the viewport
