@@ -54,7 +54,6 @@ class NavigationViewport  extends AnimationObject
 
     # TODO Add some margin as an option on the view object?
 
-    # FIXME This doesn't work if currentState isn't baseState
     orig = view.currentState.transformPoint(view.compensateDelta)
 
     viewDimensions = view.currentDimensions()

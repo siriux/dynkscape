@@ -82,13 +82,6 @@ class State
 
       @center = c
 
-  apply: () =>
-    ao = @animationObject
-    setTransform(ao.element, @getMatrix())
-
-    $(ao.origElement).css
-      opacity: @opacity
-
   getCompensationDelta: () =>
     # Compensate groups
     # This is needed if group children doesn't start at group origin
@@ -106,7 +99,7 @@ class State
       x: 0
       y: 0
 
-  getMatrix: () =>
+  getCurrentTranslate: () =>
     # Calculate position on current center
     cp = @_calcCenterChange([0,0])
 
@@ -114,33 +107,33 @@ class State
     cd = @getCompensationDelta()
 
     # Apply center and compensation delta
-    tx = @translateX + cp.x - cd.x
-    ty = @translateY + cp.y - cd.y
+    x: @translateX + cp.x - cd.x
+    y: @translateY + cp.y - cd.y
 
-    svgNode.createSVGMatrix().translate(tx, ty).scale(@scaleX, @scaleY).rotate(@rotation)
+  getMatrix: () =>
+    translate = @getCurrentTranslate()
+    svgNode.createSVGMatrix().translate(translate.x, translate.y).scale(@scaleX, @scaleY).rotate(@rotation)
+
+  apply: () =>
+    ao = @animationObject
+    setTransform(ao.element, @getMatrix())
+
+    $(ao.origElement).css
+      opacity: @opacity
 
   transformPoint: (p) =>
     srp = @scaleRotatePoint(p)
 
-    px = srp.x + @translateX
-    py = srp.y + @translateY
+    translate = @getCurrentTranslate()
 
-    if @center[0] != 0 or @center[1] != 0
-      cp = @_calcCenterChange([0,0])
-      px += cp.x
-      py += cp.y
-
-    x:  px
-    y:  py
+    x: srp.x + translate.x
+    y: srp.y + translate.y
 
   transformPointInverse: (p) =>
-    px = p.x - @translateX
-    py = p.y - @translateY
+    translate = @getCurrentTranslate()
 
-    if @center[0] != 0 or @center[1] != 0
-      cp = @_calcCenterChange([0,0])
-      px -= cp.x
-      py -= cp.y
+    px = p.x - translate.x
+    py = p.y - translate.y
 
     @scaleRotatePointInverse(x: px, y: py)
 
