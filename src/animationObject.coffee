@@ -88,11 +88,10 @@ class AnimationObject
       @setBase(s)
 
       # To compensate offset of objects inside the group
-      trfP = s.transformPoint(@element.getBBox())
-      @foo = trfP
+      box = @element.getBBox() # New box, because @element changed
       @compensateDelta =
-        x: trfP.x - s.translateX
-        y: trfP.y - s.translateY
+        x: box.x
+        y: box.y
 
   init: () =>
     # Set as view on navigation, if an index is provided

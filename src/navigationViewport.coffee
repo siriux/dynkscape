@@ -54,14 +54,8 @@ class NavigationViewport  extends AnimationObject
 
     # TODO Add some margin as an option on the view object?
 
-    orig = # Raw delta from transformed BBox
-      x: view.compensateDelta.x + view.baseState.translateX
-      y: view.compensateDelta.y + view.baseState.translateY
-
-    # FIXME This is wrong !!!
-    #currentDelta = view.currentState.getCompensationDelta()
-    #orig.x -= currentDelta.x
-    #orig.y -= currentDelta.y
+    # FIXME This doesn't work if currentState isn't baseState
+    orig = view.currentState.transformPoint(view.compensateDelta)
 
     viewDimensions = view.currentDimensions()
 

@@ -97,11 +97,11 @@ class State
     ao = @animationObject
     if ao.compensateDelta?
       delta = ao.compensateDelta
-      s = ao.baseState.diff(this) # Substract base state
-      p = s.scaleRotatePoint(delta)
+      baseDelta = ao.baseState.scaleRotatePoint(delta)
+      currentDelta = @scaleRotatePoint(delta)
 
-      x: p.x - delta.x
-      y: p.y - delta.y
+      x: currentDelta.x - baseDelta.x
+      y: currentDelta.y - baseDelta.y
     else
       x: 0
       y: 0
