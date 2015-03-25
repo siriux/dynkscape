@@ -89,6 +89,8 @@ class NavigationViewport  extends AnimationObject
 
             @translate(adjustedDelta)
 
+            @ensureViewportLimits()
+
             prev = p
 
             @changeCallback?()
@@ -133,9 +135,19 @@ class NavigationViewport  extends AnimationObject
             scale = 1 + delta
             @scale(scale, center)
 
+          @ensureViewportLimits()
+
           @changeCallback?()
 
           false # Avoid zooming on windows if ctrl is pressed
+
+  getViewportCurrentDimensions: () =>
+    if @isMain
+      width: svgPageCorrectedWidth
+      height: svgPageCorrectedHeight
+    else
+      width: @viewportWidth
+      height: @viewportHeight
 
   getStateForMaximizedView: (view, centerPage = true) =>
     s = @baseViewState.clone()
@@ -155,13 +167,12 @@ class NavigationViewport  extends AnimationObject
 
     s.rotation -= view.currentState.rotation
 
-    viewportWidth = if @isMain then svgPageCorrectedWidth else @viewportWidth
-    viewportHeight = if @isMain then svgPageCorrectedHeight else @viewportHeight
+    viewportDimensions = @getViewportCurrentDimensions()
 
-    viewportProportions = viewportWidth / viewportHeight
+    viewportProportions = viewportDimensions.width / viewportDimensions.height
 
-    scaleHorizontal = viewportWidth / viewDimensions.width
-    scaleVertical = viewportHeight / viewDimensions.height
+    scaleHorizontal = viewportDimensions.width / viewDimensions.width
+    scaleVertical = viewportDimensions.height / viewDimensions.height
 
     scaleFactor = null # Final scale factor
     tx = 0
@@ -179,9 +190,9 @@ class NavigationViewport  extends AnimationObject
     if @isMain and centerPage
       # Correct page centering on the viewport
       if svgProportions > viewportProportions
-        ty -= ((viewportHeight - (viewportWidth / svgProportions)) / 2)
+        ty -= ((viewportDimensions.height - (viewportDimensions.width / svgProportions)) / 2)
       else
-        tx -= ((viewportWidth - (viewportHeight * svgProportions)) / 2)
+        tx -= ((viewportDimensions.width - (viewportDimensions.height * svgProportions)) / 2)
 
     s.translateX += tx
     s.translateY += ty
@@ -190,6 +201,52 @@ class NavigationViewport  extends AnimationObject
     s.scaleY *= scaleFactor
 
     s
+
+  # Get the corners of the viewport represented by this state in content coordinates
+  stateToContentPoints: (s) =>
+    rel = s.diff(@baseViewState)
+
+    orig = rel.scaleRotatePoint((x: rel.translateX, y: rel.translateY))
+
+    viewportDimensions = @getViewportCurrentDimensions()
+    w = viewportDimensions.width * rel.scaleX
+    h = viewportDimensions.height * rel.scaleY
+
+    radRotation = toRadians(rel.rotation)
+    sin = Math.sin(radRotation)
+    cos = Math.cos(radRotation)
+
+    sinW = sin*w
+    cosW = cos*w
+    sinH = sin*h
+    cosH = cos*h
+
+    topLeft: orig
+    topRight:
+      x: orig.x + cosW
+      y: orig.y + sinW
+    bottomLeft:
+      x: orig.x - sinH
+      y: orig.y + cosH
+    bottomRight:
+      x: orig.x + cosW - sinH
+      y: orig.y + sinW + cosH
+
+  ensureViewportLimits: () =>
+    points = @stateToContentPoints(@currentState)
+
+    console.log points.topLeft
+    console.log points.topRight
+    console.log points.bottomLeft
+    console.log points.bottomRight
+    console.log " "
+
+    # TODO Get points for full state (for now, @baseState)
+
+    # TODO
+    # Find minimal corrections to minimize points outside full state
+    # It doesn't perform any rotation correction
+    # It places a minimum scale limit (avoid on mouse event before it happens)
 
   parentNavigations: () =>
     if not @parentNavigationsCache?

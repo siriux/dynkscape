@@ -161,8 +161,8 @@ class State
     y: p.y * @scaleY
 
   scalePointInverse: (p) =>
-    sX = p.x / @scaleX
-    sY = p.y / @scaleY
+    x: p.x / @scaleX
+    y: p.y / @scaleY
 
   diff: (dest) =>
     # If dest center is not the right one, change it before diffing
