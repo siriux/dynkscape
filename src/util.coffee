@@ -1,8 +1,8 @@
 svgNode = $("svg")[0]
 
 svgViewBox = svgNode.getAttribute("viewBox").match(/-?[\d\.]+/g)
-svgPageWidth = svgViewBox[2]
-svgPageHeight = svgViewBox[3]
+svgPageWidth = parseFloat(svgViewBox[2])
+svgPageHeight = parseFloat(svgViewBox[3])
 svgProportions = svgPageWidth/svgPageHeight
 
 updateWindowDimensions = () =>

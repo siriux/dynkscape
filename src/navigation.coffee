@@ -24,16 +24,17 @@ class Navigation extends AnimationObject
     viewportAO = AnimationObject.byFullName["#{@fullName}.viewport"]
 
     @viewport = new NavigationViewport(content, viewportAO, this)
+    @viewport.changeCallback = () =>
+      @_setCurrentView(null)
+      @updateReferenceState()
 
-    # Set the slides layer on top
-    @slidesLayer = content.slidesLayer # content is a slide, and has a slides layer
-    if @slidesLayer?
+    @slidesLayer = content.slidesLayer
+    if @slidesLayer? # If present, set the slides layer on top
       se = @slidesLayer.element
       $(se).appendTo(se.parentNode)
 
     @control = $(@element).children(".navigationControl")[0]
 
-    @_initUserNavigation()
     @_initNavigationControl()
 
     @_setLock(@meta.navigation.hasOwnProperty("lock") && @meta.navigation.lock != false)
@@ -47,7 +48,7 @@ class Navigation extends AnimationObject
       @_setCurrentView(null)
 
   _setLock: (isLocked) =>
-    @lock = isLocked
+    @viewport.lock = isLocked
     if isLocked
       $(@lockElement).css(opacity: 1)
     else
@@ -154,94 +155,9 @@ class Navigation extends AnimationObject
     $(@nextLabelElement).click () => @viewNextLabel()
     $(@animEndElement).click () => @viewAnimEnd()
 
-    $(@lockElement).click () => @_setLock(not @lock)
+    $(@lockElement).click () => @_setLock(not @viewport.lock)
     $(@showSlidesElement).click () => @_setShowSlides(not @showSlides)
     $(@fullViewElement).click () => @goFull()
-
-  _initUserNavigation: () ->
-    prev = null
-    dragging = false
-    panning = false
-
-    getTransformedPoint = (e) =>
-      cursor =
-        x: e.clientX
-        y: e.clientY
-      @viewport.transformPointToCurrent(cursor, true) # exclude own transform
-
-    stopMove = () =>
-      dragging = false
-      panning = false
-
-    $(@viewport.viewportElement)
-      .mousemove (e) =>
-        if not @lock
-          if e.ctrlKey
-            if not (dragging or panning)
-              prev = getTransformedPoint(e)
-            panning = true
-          else
-            panning = false
-
-          if dragging or panning
-            p = getTransformedPoint(e)
-
-            delta =
-              x: p.x - prev.x
-              y: p.y - prev.y
-
-            adjustedDelta = @viewport.baseState.scaleRotatePoint(delta)
-
-            @viewport.translate(adjustedDelta)
-
-            prev = p
-
-            @_setCurrentView(null)
-            @updateReferenceState()
-
-            false
-
-      .mousedown (e) =>
-        if not @lock
-          prev = getTransformedPoint(e)
-          dragging = true
-          false
-
-      .mouseup (e) =>
-        if not @lock
-          stopMove()
-          false
-
-      .mouseleave (e) =>
-        if not @lock
-          stopMove()
-          false
-
-      .on "mousewheel wheel", (e) =>
-        if not @lock
-          stopMove() # Stop any pending move
-
-          # Try to normalize across browsers.
-          delta = e.wheelDelta || e.deltaY
-          delta /= 500
-          delta = 0.5 if delta > 0.5
-          delta = -0.5 if delta < -0.5
-
-          center = @viewport.transformPointToCurrent
-            x: e.clientX
-            y: e.clientY
-
-          if e.altKey # Rotate instead of zoom when Alt is pressed
-            rotation = delta * 20
-            @viewport.rotate(rotation, center)
-          else
-            scale = 1 + delta
-            @viewport.scale(scale, center)
-
-          @_setCurrentView(null)
-          @updateReferenceState()
-
-          false # Avoid zooming on windows if ctrl is pressed
 
   goToView: (view, skipAnimation = false, centerPage = true) =>
     dest = @viewport.getStateForMaximizedView(view, centerPage)

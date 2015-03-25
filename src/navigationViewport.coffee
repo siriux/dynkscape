@@ -49,6 +49,94 @@ class NavigationViewport  extends AnimationObject
 
     @setBase(State.fromMatrix(@viewportAO.externalOrigMatrix.inverse())) # Undo the positioning done by nesting
 
+    @lock = false
+
+    @initUserNavigation()
+
+  initUserNavigation: () =>
+    prev = null
+    dragging = false
+    panning = false
+
+    getTransformedCursor = (e) =>
+      cursor =
+        x: e.clientX
+        y: e.clientY
+      @transformPointToCurrent(cursor, true) # exclude own transform
+
+    stopMove = () =>
+      dragging = false
+      panning = false
+
+    $(@viewportElement)
+      .mousemove (e) =>
+        if not @lock
+          if e.ctrlKey
+            if not (dragging or panning)
+              prev = getTransformedCursor(e)
+            panning = true
+          else
+            panning = false
+
+          if dragging or panning
+            p = getTransformedCursor(e)
+
+            delta =
+              x: p.x - prev.x
+              y: p.y - prev.y
+
+            adjustedDelta = @baseState.scaleRotatePoint(delta)
+
+            @translate(adjustedDelta)
+
+            prev = p
+
+            @changeCallback?()
+
+            false
+
+      .mousedown (e) =>
+        if not @lock
+          prev = getTransformedCursor(e)
+          dragging = true
+          false
+
+      .mouseup (e) =>
+        if not @lock
+          stopMove()
+          false
+
+      .mouseleave (e) =>
+        if not @lock
+          stopMove()
+          false
+
+      .on "mousewheel wheel", (e) =>
+        if not @lock
+          stopMove() # Stop any pending move
+
+          # Try to normalize across browsers.
+          delta = e.wheelDelta || e.deltaY
+          delta /= 500
+          delta = 0.5 if delta > 0.5
+          delta = -0.5 if delta < -0.5
+
+          centerPoint = @transformPointToCurrent
+            x: e.clientX
+            y: e.clientY
+          center = [centerPoint.x / @width, centerPoint.y / @height]
+
+          if e.altKey # Rotate instead of zoom when Alt is pressed
+            rotation = delta * 20
+            @rotate(rotation, center)
+          else
+            scale = 1 + delta
+            @scale(scale, center)
+
+          @changeCallback?()
+
+          false # Avoid zooming on windows if ctrl is pressed
+
   getStateForMaximizedView: (view, centerPage = true) =>
     s = @baseViewState.clone()
 
@@ -103,14 +191,14 @@ class NavigationViewport  extends AnimationObject
 
     s
 
-  _parentNavigations: () =>
-    if not @_parentNavigationsCache?
-      @_parentNavigationsCache = []
+  parentNavigations: () =>
+    if not @parentNavigationsCache?
+      @parentNavigationsCache = []
       $(@element).parent().parents(".Navigation").each (idx, e) =>
         n = AnimationObject.byFullName[$(e).data("fullName")]
-        @_parentNavigationsCache.push n
+        @parentNavigationsCache.push n
 
-    @_parentNavigationsCache
+    @parentNavigationsCache
 
   transformPointToCurrent: (p, excludeOwn = false, isClient = true) =>
     if isClient
@@ -118,7 +206,7 @@ class NavigationViewport  extends AnimationObject
       p.x = (p.x - svgPageOffsetX) / svgPageScale
       p.y = (p.y - svgPageOffsetY) / svgPageScale
 
-    for n, idx in @_parentNavigations() by -1
+    for n, idx in @parentNavigations() by -1
 
       # Apply navigation transformation
       navDiffState = n.currentState.diff(n.baseState)
@@ -129,37 +217,3 @@ class NavigationViewport  extends AnimationObject
         p = n.viewport.currentState.transformPointInverse(p)
 
     p
-
-  _getCenterPoint: (p) =>
-    normalizeCX = p.x / @width
-    normalizeCY = p.y / @height
-    [normalizeCX, normalizeCY]
-
-  translate: (p) =>
-    s = @currentState
-    s.translateX += p.x
-    s.translateY += p.y
-    s.apply()
-
-  scale: (scale, center) =>
-    s = @currentState
-
-    s.changeCenter(@_getCenterPoint(center))
-
-    s.scaleX *= scale
-    s.scaleY *= scale
-
-    s.changeCenter([0, 0])
-
-    s.apply()
-
-  rotate: (rotation, center) =>
-    s = @currentState
-
-    s.changeCenter(@_getCenterPoint(center))
-
-    s.rotation += rotation
-
-    s.changeCenter([0, 0])
-
-    s.apply()
