@@ -1,0 +1,59 @@
+Project Name: Dynkscape
+
+######
+
+Named colors with gradients
+http://www.inkscapeforum.com/viewtopic.php?f=6&t=248#p1362
+http://design.tutsplus.com/tutorials/quick-tip-how-to-create-gradient-fills-and-on-stroke-in-inkscape--vector-14240
+
+######
+
+Video using phantomjs
+http://sozi.baierouge.fr/pages/tutorial-converting.html
+
+######
+
+Path animation:
+
+http://lazylinepainter.info/
+https://css-tricks.com/svg-line-animation-works/
+http://jakearchibald.com/2013/animated-line-drawing-svg/
+
+Define start and end points, that can be animated.
+Start and end can be:
+ - normalized in range 0-1 of total length
+ - a length relative to total
+ - a segment index
+ - ...
+
+
+#####
+
+Perspective using feDisplacementMap filter
+
+http://www.tapper-ware.net/blog/?p=39
+
+http://stackoverflow.com/questions/27108793/how-to-transform-an-image-in-svg-or-css-into-a-non-parallelogram-shape
+
+Pre-calculate dataUrls for each frame using canvas.
+
+
+#####
+
+Allow external scripts to hook into my library to extend it.
+
+With my library it's easier to animate svg.
+
+Allow to define new actions, hooks on click, drag and drop ...
+
+Custom behaviour (animations, calculations, graphs, ...)
+
+#####
+
+Allow expressions on animations.
+
+Input elements provide values for variables (text, slider, checkbox, ...)
+They can have value change events
+
+Absolute actions for transformations, dimensions, style, ... that animate from current value to absolute.
+If this actions are used, animation cannot be seek !!!
