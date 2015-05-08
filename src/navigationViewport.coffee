@@ -22,7 +22,7 @@ class NavigationViewport  extends AnimationObject
     # Clip the content to the viewport
     clipRect = bg.cloneNode(false)
     clip = createClip(clipRect, @viewportElement)
-    #applyClip(@viewportElement, clip)
+    applyClip(@viewportElement, clip)
 
     # Create container
     container = svgElement("g")
@@ -265,9 +265,10 @@ class NavigationViewport  extends AnimationObject
     # If limits cannot be applied, it tries to adjust as much as possible
     # Other limits should be applied elsewhere, like limiting minimum zoom
 
-    neededPosX = neededNegX = neededPosY = neededNegY = 0
-    allowedPosX = allowedPosY = Number.POSITIVE_INFINITY
-    allowedNegX = allowedNegY = Number.NEGATIVE_INFINITY
+    # Positive and negative deltas, horizontally and vertically in limits coordinates
+    neededPosH = neededNegH = neededPosV = neededNegV = 0
+    allowedPosH = allowedPosV = Number.POSITIVE_INFINITY
+    allowedNegH = allowedNegV = Number.NEGATIVE_INFINITY
 
     current = @stateToContentRect(@currentState)
 
@@ -278,82 +279,75 @@ class NavigationViewport  extends AnimationObject
       # Side start and end
       a = limits.points[i]
       b = limits.points[(i + 1) % 4]
+
       sideLength = if i % 2 == 0 then limits.width else limits.height
 
       # Reuse ba vector
       baX = b.x - a.x
       baY = b.y - a.y
-      baUnitX = baX / sideLength
-      baUnitY = baY / sideLength
 
       for c in current.points
         # Cross product module of ba x ca
         z = baX * (c.y - a.y) - baY * (c.x - a.x)
 
-        distMagnitude = Math.abs(z / sideLength) # z = |ba|*|ca|*sin, and we need |ca|*sin
-
-        # Vector perpendicular to ba, with distMagnitude size
-        dx = baUnitY * distMagnitude
-        dy = -baUnitX * distMagnitude
+        dist = Math.abs(z / sideLength) # z = |ba|*|ca|*sin, and we need |ca|*sin
 
         if z < 0
           # c outside of the rect with respect to side ab
-          if dx > 0 && dx > neededPosX
-            neededPosX = dx
-          else if dx < 0 && dx < neededNegX
-            neededNegX = dx
-
-          if dy > 0 && dy > neededPosY
-            neededPosY = dy
-          else if dy < 0 && dy < neededNegY
-            neededNegY = dy
+          switch i
+            when 0 then if dist > neededPosV then neededPosV = dist
+            when 1 then if -dist < neededNegH then neededNegH = -dist
+            when 2 then if -dist < neededNegV then neededNegV = -dist
+            when 3 then if dist > neededPosH then neededPosH = dist
         else
           # c inside of the rect with respect to side ab
+          switch i
+            when 0 then if -dist > allowedNegV then allowedNegV = -dist
+            when 1 then if dist < allowedPosH then allowedPosH = dist
+            when 2 then if dist < allowedPosV then allowedPosV = dist
+            when 3 then if -dist > allowedNegH then allowedNegH = -dist
 
-          # Invert the vector, we are inside
-          dx = -dx
-          dy = -dy
-
-          if dx > 0 && dx < allowedPosX
-            allowedPosX = dx
-          else if dx < 0 && dx > allowedNegX
-            allowedNegX = dx
-
-          if dy > 0 && dy < allowedPosY
-            allowedPosY = dy
-          else if dy < 0 && dy > allowedNegY
-            allowedNegY = dy
-
-    dx =
-      if neededPosX == 0
-        neededNegX
-      else if neededNegX == 0
-        neededPosX
+    dh =
+      if neededPosH == 0
+        neededNegH
+      else if neededNegH == 0
+        neededPosH
       else
-        (neededPosX + neededNegX) / 2
+        (neededPosH + neededNegH) / 2
 
-    if dx < 0 && dx < allowedNegX
-      dx = ((dx - allowedNegX) / 2) + allowedNegX
-    else if dx > 0 && dx > allowedPosX
-      dx = ((dx - allowedPosX) / 2) + allowedPosX
+    if dh < 0 && dh < allowedNegH
+      dh = ((dh - allowedNegH) / 2) + allowedNegH
+    else if dh > 0 && dh > allowedPosH
+      dh = ((dh - allowedPosH) / 2) + allowedPosH
 
-    dy =
-      if neededPosY == 0
-        neededNegY
-      else if neededNegY == 0
-        neededPosY
+    dv =
+      if neededPosV == 0
+        neededNegV
+      else if neededNegV == 0
+        neededPosV
       else
-        (neededPosY + neededNegY) / 2
+        (neededPosV + neededNegV) / 2
 
-    if dy < 0 && dy < allowedNegY
-      dy = ((dy - allowedNegY) / 2) + allowedNegY
-    else if dy > 0 && dy > allowedPosY
-      dy = ((dy - allowedPosY) / 2) + allowedPosY
+    if dv < 0 && dv < allowedNegV
+      dv = ((dv - allowedNegV) / 2) + allowedNegV
+    else if dv > 0 && dv > allowedPosV
+      dv = ((dv - allowedPosV) / 2) + allowedPosV
+
+    # Unit vectors in limit coordinates
+    unitHX = (limits.points[1].x - limits.points[0].x) / limits.width
+    unitHY = (limits.points[1].y - limits.points[0].y) / limits.width
+
+    unitVX = (limits.points[2].x - limits.points[1].x) / limits.height
+    unitVY = (limits.points[2].y - limits.points[1].y) / limits.height
+
+    # Final vector in content coordinates
+    dx = unitHX*dh + unitVX*dv
+    dy = unitHY*dh + unitVY*dv
 
     # Scaling and rotating is needed because we work in content coordinates!
     correction = @currentState.scaleRotatePoint((x: dx, y: dy))
-    @currentState.translateX += correction.x
-    @currentState.translateY += correction.y
+    @currentState.translateX -= correction.x
+    @currentState.translateY -= correction.y
 
   parentNavigations: () =>
     if not @parentNavigationsCache?
