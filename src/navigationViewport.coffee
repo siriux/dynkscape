@@ -22,7 +22,7 @@ class NavigationViewport  extends AnimationObject
     # Clip the content to the viewport
     clipRect = bg.cloneNode(false)
     clip = createClip(clipRect, @viewportElement)
-    applyClip(@viewportElement, clip)
+    #applyClip(@viewportElement, clip)
 
     # Create container
     container = svgElement("g")
@@ -47,7 +47,10 @@ class NavigationViewport  extends AnimationObject
 
     @baseViewState.animationObject = this
 
-    @setBase(State.fromMatrix(@viewportAO.externalOrigMatrix.inverse())) # Undo the positioning done by nesting
+    contentExternalMatrix = content.externalOrigMatrix # Undo content positioning (like offset in layers)
+    viewportExternalMatrixInv = @viewportAO.externalOrigMatrix.inverse() # Undo the positioning done by nesting
+    correctedBaseMatrix = viewportExternalMatrixInv.multiply(contentExternalMatrix)
+    @setBase(State.fromMatrix(correctedBaseMatrix))
 
     @lock = false
 
@@ -88,8 +91,6 @@ class NavigationViewport  extends AnimationObject
             adjustedDelta = @baseState.scaleRotatePoint(delta)
 
             @translate(adjustedDelta)
-
-            @ensureViewportLimits()
 
             prev = p
 
@@ -135,11 +136,39 @@ class NavigationViewport  extends AnimationObject
             scale = 1 + delta
             @scale(scale, center)
 
-          @ensureViewportLimits()
-
           @changeCallback?()
 
           false # Avoid zooming on windows if ctrl is pressed
+
+  transformCurrent: (center, f) =>
+    s = @currentState
+
+    if center?
+      origCenter = s.center
+      s.changeCenter(center)
+
+    f(s)
+
+    if center?
+      s.changeCenter(origCenter)
+
+    @applyViewportLimits()
+
+    s.apply()
+
+  translate: (p) =>
+    @transformCurrent null, (s) ->
+      s.translateX += p.x
+      s.translateY += p.y
+
+  scale: (scale, center) =>
+    @transformCurrent center, (s) ->
+      s.scaleX *= scale
+      s.scaleY *= scale
+
+  rotate: (rotation, center) =>
+    @transformCurrent center, (s) ->
+      s.rotation += rotation
 
   getViewportCurrentDimensions: () =>
     if @isMain
@@ -203,7 +232,7 @@ class NavigationViewport  extends AnimationObject
     s
 
   # Get the corners of the viewport represented by this state in content coordinates
-  stateToContentPoints: (s) =>
+  stateToContentRect: (s) =>
     rel = s.diff(@baseViewState)
 
     orig = rel.scaleRotatePoint((x: rel.translateX, y: rel.translateY))
@@ -212,6 +241,7 @@ class NavigationViewport  extends AnimationObject
     w = viewportDimensions.width * rel.scaleX
     h = viewportDimensions.height * rel.scaleY
 
+    # TODO Optimize for rel.rotation = 0
     radRotation = toRadians(rel.rotation)
     sin = Math.sin(radRotation)
     cos = Math.cos(radRotation)
@@ -221,32 +251,109 @@ class NavigationViewport  extends AnimationObject
     sinH = sin*h
     cosH = cos*h
 
-    topLeft: orig
-    topRight:
-      x: orig.x + cosW
-      y: orig.y + sinW
-    bottomLeft:
-      x: orig.x - sinH
-      y: orig.y + cosH
-    bottomRight:
-      x: orig.x + cosW - sinH
-      y: orig.y + sinW + cosH
+    points: [ # Ordered clockwise, starting by original top-left corner
+      orig
+      { x: orig.x + cosW, y: orig.y + sinW }
+      { x: orig.x + cosW - sinH, y: orig.y + sinW + cosH }
+      { x: orig.x - sinH, y: orig.y + cosH }
+    ]
+    width: w
+    height: h
 
-  ensureViewportLimits: () =>
-    points = @stateToContentPoints(@currentState)
+  applyViewportLimits: () =>
+    # It just transforms position, no rotation or scale is performed
+    # If limits cannot be applied, it tries to adjust as much as possible
+    # Other limits should be applied elsewhere, like limiting minimum zoom
 
-    console.log points.topLeft
-    console.log points.topRight
-    console.log points.bottomLeft
-    console.log points.bottomRight
-    console.log " "
+    neededPosX = neededNegX = neededPosY = neededNegY = 0
+    allowedPosX = allowedPosY = Number.POSITIVE_INFINITY
+    allowedNegX = allowedNegY = Number.NEGATIVE_INFINITY
 
-    # TODO Get points for full state (for now, @baseState)
+    current = @stateToContentRect(@currentState)
 
-    # TODO
-    # Find minimal corrections to minimize points outside full state
-    # It doesn't perform any rotation correction
-    # It places a minimum scale limit (avoid on mouse event before it happens)
+    # TODO Get points for full state (for now, @baseState) and cache
+    limits = @stateToContentRect(@baseState)
+
+    for i in [0..3]
+      # Side start and end
+      a = limits.points[i]
+      b = limits.points[(i + 1) % 4]
+      sideLength = if i % 2 == 0 then limits.width else limits.height
+
+      # Reuse ba vector
+      baX = b.x - a.x
+      baY = b.y - a.y
+      baUnitX = baX / sideLength
+      baUnitY = baY / sideLength
+
+      for c in current.points
+        # Cross product module of ba x ca
+        z = baX * (c.y - a.y) - baY * (c.x - a.x)
+
+        distMagnitude = Math.abs(z / sideLength) # z = |ba|*|ca|*sin, and we need |ca|*sin
+
+        # Vector perpendicular to ba, with distMagnitude size
+        dx = baUnitY * distMagnitude
+        dy = -baUnitX * distMagnitude
+
+        if z < 0
+          # c outside of the rect with respect to side ab
+          if dx > 0 && dx > neededPosX
+            neededPosX = dx
+          else if dx < 0 && dx < neededNegX
+            neededNegX = dx
+
+          if dy > 0 && dy > neededPosY
+            neededPosY = dy
+          else if dy < 0 && dy < neededNegY
+            neededNegY = dy
+        else
+          # c inside of the rect with respect to side ab
+
+          # Invert the vector, we are inside
+          dx = -dx
+          dy = -dy
+
+          if dx > 0 && dx < allowedPosX
+            allowedPosX = dx
+          else if dx < 0 && dx > allowedNegX
+            allowedNegX = dx
+
+          if dy > 0 && dy < allowedPosY
+            allowedPosY = dy
+          else if dy < 0 && dy > allowedNegY
+            allowedNegY = dy
+
+    dx =
+      if neededPosX == 0
+        neededNegX
+      else if neededNegX == 0
+        neededPosX
+      else
+        (neededPosX + neededNegX) / 2
+
+    if dx < 0 && dx < allowedNegX
+      dx = ((dx - allowedNegX) / 2) + allowedNegX
+    else if dx > 0 && dx > allowedPosX
+      dx = ((dx - allowedPosX) / 2) + allowedPosX
+
+    dy =
+      if neededPosY == 0
+        neededNegY
+      else if neededNegY == 0
+        neededPosY
+      else
+        (neededPosY + neededNegY) / 2
+
+    if dy < 0 && dy < allowedNegY
+      dy = ((dy - allowedNegY) / 2) + allowedNegY
+    else if dy > 0 && dy > allowedPosY
+      dy = ((dy - allowedPosY) / 2) + allowedPosY
+
+    # Scaling and rotating is needed because we work in content coordinates!
+    correction = @currentState.scaleRotatePoint((x: dx, y: dy))
+    @currentState.translateX += correction.x
+    @currentState.translateY += correction.y
 
   parentNavigations: () =>
     if not @parentNavigationsCache?

@@ -141,31 +141,3 @@ class AnimationObject
     else
       width: @width
       height: @height
-
-  transformCurrent: (center, f) =>
-    s = @currentState
-
-    if center?
-      origCenter = s.center
-      s.changeCenter(center)
-
-    f(s)
-
-    if center?
-      s.changeCenter(origCenter)
-
-    s.apply()
-
-  translate: (p) =>
-    @transformCurrent null, (s) ->
-      s.translateX += p.x
-      s.translateY += p.y
-
-  scale: (scale, center) =>
-    @transformCurrent center, (s) ->
-      s.scaleX *= scale
-      s.scaleY *= scale
-
-  rotate: (rotation, center) =>
-    @transformCurrent center, (s) ->
-      s.rotation += rotation
