@@ -236,6 +236,10 @@ class NavigationViewport  extends AnimationObject
 
   # Get the corners of the viewport represented by this state in content coordinates
   stateToContentRect: (s) =>
+    # Ensure the center is [0,0]
+    s = s.clone()
+    s.changeCenter([0,0])
+
     rel = s.diff(@baseViewState)
 
     orig = rel.scaleRotatePoint((x: rel.translateX, y: rel.translateY))
