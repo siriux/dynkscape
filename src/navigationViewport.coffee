@@ -52,6 +52,9 @@ class NavigationViewport  extends AnimationObject
     correctedBaseMatrix = viewportExternalMatrixInv.multiply(contentExternalMatrix)
     @setBase(State.fromMatrix(correctedBaseMatrix))
 
+    @rawBaseState = State.fromMatrix(viewportExternalMatrixInv) # Needed to calculate pointer position
+    @rawBaseState.animationObject = this
+
     @lock = false
 
     @initUserNavigation()
@@ -371,7 +374,7 @@ class NavigationViewport  extends AnimationObject
       p = navDiffState.transformPoint(p)
 
       if not excludeOwn or idx > 0 # Ignore own transformation for translate
-        p = n.viewport.baseState.transformPoint(p)
+        p = n.viewport.rawBaseState.transformPoint(p)
         p = n.viewport.currentState.transformPointInverse(p)
 
     p
