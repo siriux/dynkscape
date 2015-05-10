@@ -23,7 +23,7 @@ class Navigation extends AnimationObject
 
     viewportAO = AnimationObject.byFullName["#{@fullName}.viewport"]
 
-    @viewport = new NavigationViewport(content, viewportAO, this)
+    @viewport = new NavigationViewport(content, viewportAO)
     @viewport.changeCallback = () =>
       @_setCurrentView(null)
       @updateReferenceState()

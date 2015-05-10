@@ -71,6 +71,22 @@ class AnimationObject
       s.opacity = $(@element).css("opacity")
       s.animationObject = this
 
+      ###
+       FIXME getBBox() of transformed groups in Chrome doesn't always work as expected.
+
+       It's calculated (it seems at least) as the bounding box of the untransformed group.
+       Then, this box is transformed, and a new box (bound the transformed one) is created.
+
+       https://code.google.com/p/chromium/issues/detail?id=377665
+
+       Any ideas for a workaround? See raphael or Snap.svg?
+
+       This only affects to nested groups inside the animation object, therefore, it's really
+       simple to fix it. Just ungroup and regroup, to have the group transformation applied directly
+       to it's elements.
+
+       The same for the other getBBox() below.
+      ###
       box = @element.getBBox()
       if not (@width? and @height?)
         @width = box.width

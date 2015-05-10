@@ -15,6 +15,8 @@ class State
   @fromMatrix: (matrix) ->
     # From http://svg.dabbles.info/snaptut-matrix-play
 
+    # FIXME When Non Uniform Scaling and Rotation is present, is detected as skew, and this is wrong !
+
     deltaTransformPoint = (matrix, point) ->
       x: point.x * matrix.a + point.y * matrix.c + 0
       y: point.x * matrix.b + point.y * matrix.d + 0
@@ -112,7 +114,7 @@ class State
 
   getMatrix: () =>
     translate = @getCurrentTranslate()
-    svgNode.createSVGMatrix().translate(translate.x, translate.y).scale(@scaleX, @scaleY).rotate(@rotation)
+    svgNode.createSVGMatrix().translate(translate.x, translate.y).scaleNonUniform(@scaleX, @scaleY).rotate(@rotation)
 
   apply: () =>
     ao = @animationObject

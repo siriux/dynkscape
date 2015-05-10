@@ -23,7 +23,6 @@ class ScrollTextViewport extends AnimationObject
 
     @setBase(base)
 
-  recalculate: () =>
     @width = getFloatAttr(@element, "width", 0)
     @height = getFloatAttr(@element, "height", 0)
 

@@ -1,7 +1,7 @@
 class NavigationViewport  extends AnimationObject
   @main: null # Static for the main viewport
 
-  constructor: (content, @viewportAO, @navigation) ->
+  constructor: (content, @viewportAO, @wheelMode, limitMode) ->
     viewportEl = @viewportAO.element
     @viewportWidth = getFloatAttr(viewportEl, "width", 0)
     @viewportHeight = getFloatAttr(viewportEl, "height", 0)
@@ -37,16 +37,6 @@ class NavigationViewport  extends AnimationObject
     # Raw, no clipping or compensation
     super(container, {}, contentDimensions.width, contentDimensions.height, true)
 
-    if content == Layer.main
-      @isMain = true
-      NavigationViewport.main = this
-      @baseViewState = new State()
-    else
-      @isMain = false
-      @baseViewState = State.fromMatrix(@viewportAO.externalOrigMatrix.inverse().multiply(@viewportAO.actualOrigMatrix))
-
-    @baseViewState.animationObject = this
-
     contentExternalMatrix = content.externalOrigMatrix # Undo content positioning (like offset in layers)
     viewportExternalMatrixInv = @viewportAO.externalOrigMatrix.inverse() # Undo the positioning done by nesting
     correctedBaseMatrix = viewportExternalMatrixInv.multiply(contentExternalMatrix)
@@ -54,6 +44,29 @@ class NavigationViewport  extends AnimationObject
 
     @rawBaseState = State.fromMatrix(viewportExternalMatrixInv) # Needed to calculate pointer position
     @rawBaseState.animationObject = this
+
+    if content == Layer.main
+      @isMain = true
+      NavigationViewport.main = this
+      @baseViewState = new State()
+    else
+      @isMain = false
+      @baseViewState = State.fromMatrix(viewportExternalMatrixInv.multiply(@viewportAO.actualOrigMatrix))
+
+    @baseViewState.animationObject = this
+
+    switch limitMode
+      # null or 0 means no limits
+      when 1 # Base state as limit
+        @rectLimits = @stateToViewportRect(@baseState)
+      when 2 # Content as limit
+        if content.currentState?
+          @rectLimits = @viewToViewportRect(content)
+        else
+          console.log "Error: #{content.fullName} cannot be used as a limit"
+      when 3 # Some view as limit
+        # TODO Requires an extra constructor parameter for the view
+        null
 
     @lock = false
 
@@ -127,21 +140,35 @@ class NavigationViewport  extends AnimationObject
           delta = 0.5 if delta > 0.5
           delta = -0.5 if delta < -0.5
 
-          centerPoint = @transformPointToCurrent
-            x: e.clientX
-            y: e.clientY
-          center = [centerPoint.x / @width, centerPoint.y / @height]
+          propagateEvent = false # Avoid zooming on windows if ctrl is pressed
 
-          if e.altKey # Rotate instead of zoom when Alt is pressed
-            rotation = delta * 20
-            @rotate(rotation, center)
-          else
-            scale = 1 + delta
-            @scale(scale, center)
+          switch @wheelMode
+            when null, undefined, 0 # zoom/rotate
+              centerPoint = @transformPointToCurrent
+                x: e.clientX
+                y: e.clientY
+              center = [centerPoint.x / @width, centerPoint.y / @height]
+
+              if e.altKey # Rotate instead of zoom when Alt is pressed
+                rotation = delta * 20
+                @rotate(rotation, center)
+              else
+                scale = 1 + delta
+                @scale(scale, center)
+
+            when 1 # Scroll
+              if (not e.ctrlKey) # With ctrl pressed, allow to zoom
+                # TODO deltaX if present?
+                # TODO Speed factor relative to content size and proportions?
+                @translate({x: 0, y: delta * 50})
+              else
+                propagateEvent = true
 
           @changeCallback?()
 
-          false # Avoid zooming on windows if ctrl is pressed
+          propagateEvent
+
+
 
   transformCurrent: (center, f) =>
     s = @currentState
@@ -234,8 +261,8 @@ class NavigationViewport  extends AnimationObject
 
     s
 
-  # Get the corners of the viewport represented by this state in content coordinates
-  stateToContentRect: (s) =>
+  # Get the rect of the viewport represented by this state in base viewport coordinates
+  stateToViewportRect: (s) =>
     # Ensure the center is [0,0]
     s = s.clone()
     s.changeCenter([0,0])
@@ -267,99 +294,130 @@ class NavigationViewport  extends AnimationObject
     width: w
     height: h
 
+  # Get the rect of this view in base viewport coordinates
+  viewToViewportRect: (view) =>
+    # TODO Refactorize common with stateToViewportRect
+
+    s = view.currentState
+    orig = s.transformPoint(view.compensateDelta)
+
+    p = s.scalePoint((x: view.width, y: view.height))
+
+    w = p.x
+    h = p.y
+
+    # TODO Optimize for rel.rotation = 0
+    radRotation = toRadians(s.rotation)
+    sin = Math.sin(radRotation)
+    cos = Math.cos(radRotation)
+
+    sinW = sin*w
+    cosW = cos*w
+    sinH = sin*h
+    cosH = cos*h
+
+    points: [ # Ordered clockwise, starting by original top-left corner
+      orig
+      { x: orig.x + cosW, y: orig.y + sinW }
+      { x: orig.x + cosW - sinH, y: orig.y + sinW + cosH }
+      { x: orig.x - sinH, y: orig.y + cosH }
+    ]
+    width: w
+    height: h
+
   applyViewportLimits: () =>
-    # It just transforms position, no rotation or scale is performed
-    # If limits cannot be applied, it tries to adjust as much as possible
-    # Other limits should be applied elsewhere, like limiting minimum zoom
+    limits = @rectLimits
 
-    # Positive and negative deltas, horizontally and vertically in limits coordinates
-    neededPosH = neededNegH = neededPosV = neededNegV = 0
-    allowedPosH = allowedPosV = Number.POSITIVE_INFINITY
-    allowedNegH = allowedNegV = Number.NEGATIVE_INFINITY
+    if limits?
+      # It just transforms position, no rotation or scale is performed
+      # If limits cannot be applied, it tries to adjust as much as possible
+      # Other limits should be applied elsewhere, like limiting minimum zoom
 
-    current = @stateToContentRect(@currentState)
+      # Positive and negative deltas, horizontally and vertically in limits coordinates
+      neededPosH = neededNegH = neededPosV = neededNegV = 0
+      allowedPosH = allowedPosV = Number.POSITIVE_INFINITY
+      allowedNegH = allowedNegV = Number.NEGATIVE_INFINITY
 
-    # TODO Get points for full state (for now, @baseState) and cache
-    limits = @stateToContentRect(@baseState)
+      current = @stateToViewportRect(@currentState)
 
-    for i in [0..3]
-      # Side start and end
-      a = limits.points[i]
-      b = limits.points[(i + 1) % 4]
+      for i in [0..3]
+        # Side start and end
+        a = limits.points[i]
+        b = limits.points[(i + 1) % 4]
 
-      sideLength = if i % 2 == 0 then limits.width else limits.height
+        sideLength = if i % 2 == 0 then limits.width else limits.height
 
-      # Reuse ba vector
-      baX = b.x - a.x
-      baY = b.y - a.y
+        # Reuse ba vector
+        baX = b.x - a.x
+        baY = b.y - a.y
 
-      for c in current.points
-        # Cross product module of ba x ca
-        z = baX * (c.y - a.y) - baY * (c.x - a.x)
+        for c in current.points
+          # Cross product module of ba x ca
+          z = baX * (c.y - a.y) - baY * (c.x - a.x)
 
-        dist = Math.abs(z / sideLength) # z = |ba|*|ca|*sin, and we need |ca|*sin
+          dist = Math.abs(z / sideLength) # z = |ba|*|ca|*sin, and we need |ca|*sin
 
-        if z < 0
-          # c outside of the rect with respect to side ab
-          switch i
-            when 0 then if dist > neededPosV then neededPosV = dist
-            when 1 then if -dist < neededNegH then neededNegH = -dist
-            when 2 then if -dist < neededNegV then neededNegV = -dist
-            when 3 then if dist > neededPosH then neededPosH = dist
+          if z < 0
+            # c outside of the rect with respect to side ab
+            switch i
+              when 0 then if dist > neededPosV then neededPosV = dist
+              when 1 then if -dist < neededNegH then neededNegH = -dist
+              when 2 then if -dist < neededNegV then neededNegV = -dist
+              when 3 then if dist > neededPosH then neededPosH = dist
+          else
+            # c inside of the rect with respect to side ab
+            switch i
+              when 0 then if -dist > allowedNegV then allowedNegV = -dist
+              when 1 then if dist < allowedPosH then allowedPosH = dist
+              when 2 then if dist < allowedPosV then allowedPosV = dist
+              when 3 then if -dist > allowedNegH then allowedNegH = -dist
+
+      dh =
+        if neededPosH == 0
+          neededNegH
+        else if neededNegH == 0
+          neededPosH
         else
-          # c inside of the rect with respect to side ab
-          switch i
-            when 0 then if -dist > allowedNegV then allowedNegV = -dist
-            when 1 then if dist < allowedPosH then allowedPosH = dist
-            when 2 then if dist < allowedPosV then allowedPosV = dist
-            when 3 then if -dist > allowedNegH then allowedNegH = -dist
+          (neededPosH + neededNegH) / 2
 
-    dh =
-      if neededPosH == 0
-        neededNegH
-      else if neededNegH == 0
-        neededPosH
-      else
-        (neededPosH + neededNegH) / 2
+      if dh < 0 && dh < allowedNegH
+        dh = ((dh - allowedNegH) / 2) + allowedNegH
+      else if dh > 0 && dh > allowedPosH
+        dh = ((dh - allowedPosH) / 2) + allowedPosH
 
-    if dh < 0 && dh < allowedNegH
-      dh = ((dh - allowedNegH) / 2) + allowedNegH
-    else if dh > 0 && dh > allowedPosH
-      dh = ((dh - allowedPosH) / 2) + allowedPosH
+      dv =
+        if neededPosV == 0
+          neededNegV
+        else if neededNegV == 0
+          neededPosV
+        else
+          (neededPosV + neededNegV) / 2
 
-    dv =
-      if neededPosV == 0
-        neededNegV
-      else if neededNegV == 0
-        neededPosV
-      else
-        (neededPosV + neededNegV) / 2
+      if dv < 0 && dv < allowedNegV
+        dv = ((dv - allowedNegV) / 2) + allowedNegV
+      else if dv > 0 && dv > allowedPosV
+        dv = ((dv - allowedPosV) / 2) + allowedPosV
 
-    if dv < 0 && dv < allowedNegV
-      dv = ((dv - allowedNegV) / 2) + allowedNegV
-    else if dv > 0 && dv > allowedPosV
-      dv = ((dv - allowedPosV) / 2) + allowedPosV
+      # Unit vectors in limit coordinates
+      unitHX = (limits.points[1].x - limits.points[0].x) / limits.width
+      unitHY = (limits.points[1].y - limits.points[0].y) / limits.width
 
-    # Unit vectors in limit coordinates
-    unitHX = (limits.points[1].x - limits.points[0].x) / limits.width
-    unitHY = (limits.points[1].y - limits.points[0].y) / limits.width
+      unitVX = (limits.points[2].x - limits.points[1].x) / limits.height
+      unitVY = (limits.points[2].y - limits.points[1].y) / limits.height
 
-    unitVX = (limits.points[2].x - limits.points[1].x) / limits.height
-    unitVY = (limits.points[2].y - limits.points[1].y) / limits.height
+      # Final vector in base viewport coordinates
+      dx = unitHX*dh + unitVX*dv
+      dy = unitHY*dh + unitVY*dv
 
-    # Final vector in content coordinates
-    dx = unitHX*dh + unitVX*dv
-    dy = unitHY*dh + unitVY*dv
-
-    # Scaling and rotating is needed because we work in content coordinates!
-    correction = @currentState.scaleRotatePoint((x: dx, y: dy))
-    @currentState.translateX -= correction.x
-    @currentState.translateY -= correction.y
+      # Scaling and rotating is needed because we work in base viewport coordinates!
+      correction = @currentState.scaleRotatePoint((x: dx, y: dy))
+      @currentState.translateX -= correction.x
+      @currentState.translateY -= correction.y
 
   parentNavigations: () =>
     if not @parentNavigationsCache?
       @parentNavigationsCache = []
-      $(@element).parent().parents(".Navigation").each (idx, e) =>
+      $(@element).parent().parents(".Navigation, .TextScroll").each (idx, e) =>
         n = AnimationObject.byFullName[$(e).data("fullName")]
         @parentNavigationsCache.push n
 
