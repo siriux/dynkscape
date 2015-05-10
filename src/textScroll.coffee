@@ -84,89 +84,47 @@ class TextScroll extends AnimationObject
     containerHeight = @textContent.clientHeight
     container.setAttribute("height", containerHeight)
 
-    # Animation objects needed for the NavigationViewport
-    $(flowRoot).replaceWith(container)
-    setAttrs container,
-      x: getFloatAttr(flowRect, "x", 0)
-      y: getFloatAttr(flowRect, "y", 0)
-      transform: getStringAttr(flowRect, "transform")
-    $(flowRect).hide().appendTo(@element)
+    # Viewport animation object needed by the viewport
+    $(flowRect).hide().appendTo(@element) # Hide it, as it's not needed. Deleting it after creating the object would probably work, but can give problems
     viewportAO = new AnimationObject(flowRect, {namespace: @fullName, name: "viewport"}, flowWidth, flowHeight, true)
+
+    # Transform container to it's aparent initial size, equivalent to what you would view on the editor
+    # This is needed by the viewport, that also works with normal objects
+    setTransform(container, viewportAO.actualOrigMatrix)
+
+    # Container animation object needed by the viewport
     containerAO = new AnimationObject(container, {namespace: @fullName, name: "text"})
 
     @viewport = new NavigationViewport(containerAO, viewportAO, 1, 2)
 
-  #   # Scroll
-  #
-  #   $(@textContent).on "mousewheel wheel", (e) =>
-  #     if (not e.ctrlKey) # With ctrl pressed, allow to zoom
-  #       delta = e.wheelDelta || e.deltaY
-  #       # Negative to simulate mac natural scroll on chrome
-  #       # TODO Improve for other browsers
-  #       @updateScroll(-delta)
-  #       false
-  #
-  #   # Drag
-  #
-  #   prevY = null
-  #   dragging = false
-  #
-  #   $(@textContent)
-  #     .mousemove (e) =>
-  #       if dragging
-  #         # TODO Adapt scaleFactor to rotation !!!
-  #         # TODO See how it's done for Navigation and NavigationViewport
-  #         scaleFactor = matrixScaleY(globalMatrix(@viewport.element))
-  #
-  #         prevY ?= e.clientY
-  #
-  #         delta = (e.clientY - prevY) / scaleFactor
-  #
-  #         prevY = e.clientY
-  #
-  #         @updateScroll(-delta)
-  #         false
-  #     .mousedown (e) =>
-  #       prevY = e.clientY
-  #       dragging = true
-  #       false
-  #     .mouseup (e) =>
-  #       dragging = false
-  #       false
-  #     .mouseleave (e) =>
-  #       dragging = false
-  #       false
-  #
-  #   # Process Anchors
-  #   @anchors = {}
-  #
-  #   $(@textConten).css(position: "relative") # Needed to get the right offsetTop
-  #
-  #   $(@textContent).find("a[name]").each (idx, anchor) =>
-  #     name = getStringAttr(anchor, "name")
-  #     @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
-  #
-  #   $(@textContent).css(position: "static") # Revert to default
-  #
-  # setScroll: (s) =>
-  #   @viewport.setScroll(s)
-  #   @updateReferenceState()
-  #
-  # updateScroll: (delta) =>
-  #   @viewport.updateScroll(delta)
-  #   @updateReferenceState()
-  #
-  # goToAnchor: (name) =>
-  #   # TODO Animation?
-  #   anchorScroll = @anchors[name]
-  #   if anchorScroll?
-  #     @setScroll(anchorScroll)
-  #
-  # saveReferenceState: () => newReferenceState(@reference)
-  #
-  # updateReferenceState: () =>
-  #   updateReferenceState @reference, (s) => s.scroll = @viewport.currentScroll()
-  #
-  # applyReferenceState: (s, skipAnimation = false) =>
-  #   if s.scroll?
-  #     @setScroll(s.scroll)
+    # # Process Anchors
+    # @anchors = {}
+    #
+    # $(@textConten).css(position: "relative") # Needed to get the right offsetTop
+    #
+    # $(@textContent).find("a[name]").each (idx, anchor) =>
+    #   name = getStringAttr(anchor, "name")
+    #   @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
+    #
+    # $(@textContent).css(position: "static") # Revert to default
+
+
+
+  goToAnchor: (name) =>
+    # TODO Animation?
+
+    # TODO
+    # anchorScroll = @anchors[name]
+    # if anchorScroll?
+    #   @setScroll(anchorScroll)
+
+  saveReferenceState: () => newReferenceState(@reference)
+
+  updateReferenceState: () =>
+    # TODO
+    #updateReferenceState @reference, (s) => s.scroll = @viewport.currentScroll()
+
+  applyReferenceState: (s, skipAnimation = false) =>
+    # TODO
+    #if s.scroll?
+      #@setScroll(s.scroll)
