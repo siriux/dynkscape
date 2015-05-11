@@ -96,35 +96,40 @@ class TextScroll extends AnimationObject
     containerAO = new AnimationObject(container, {namespace: @fullName, name: "text"})
 
     @viewport = new NavigationViewport(containerAO, viewportAO, 1, 2)
+    @viewport.changeCallback = () => @updateReferenceState()
 
-    # # Process Anchors
-    # @anchors = {}
-    #
-    # $(@textConten).css(position: "relative") # Needed to get the right offsetTop
-    #
-    # $(@textContent).find("a[name]").each (idx, anchor) =>
-    #   name = getStringAttr(anchor, "name")
-    #   @anchors[name] = anchor.offsetTop - padding # Substract padding for a little extra space
-    #
-    # $(@textContent).css(position: "static") # Revert to default
+    # Process Anchors
+    @anchors = {}
 
+    t = $(@textContent)
+    currentTextOffset = t.offset()
+    currentTextScale = containerHeight / currentTextOffset.height
+    t.find("a[name]").each (idx, anchor) =>
+      name = getStringAttr(anchor, "name")
+      anchorScroll = ($(anchor).offset().top - currentTextOffset.top) * currentTextScale
+      @anchors[name] = anchorScroll - padding
+
+  getScroll: () => @viewport.baseState.translateY - @viewport.currentState.translateY
+
+  setScroll: (scroll) =>
+    @viewport.currentState.translateY = @viewport.baseState.translateY - scroll
+    @viewport.applyViewportLimits()
+    @viewport.currentState.apply()
 
 
   goToAnchor: (name) =>
     # TODO Animation?
 
-    # TODO
-    # anchorScroll = @anchors[name]
-    # if anchorScroll?
-    #   @setScroll(anchorScroll)
+    anchorScroll = @anchors[name]
+    if anchorScroll?
+      @setScroll(anchorScroll)
 
-  saveReferenceState: () => newReferenceState(@reference)
+  saveReferenceState: () =>
+    newReferenceState(@reference)
 
   updateReferenceState: () =>
-    # TODO
-    #updateReferenceState @reference, (s) => s.scroll = @viewport.currentScroll()
+    updateReferenceState @reference, (s) => s.scroll = @getScroll()
 
   applyReferenceState: (s, skipAnimation = false) =>
-    # TODO
-    #if s.scroll?
-      #@setScroll(s.scroll)
+    if s.scroll?
+      @setScroll(s.scroll)

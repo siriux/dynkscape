@@ -168,8 +168,6 @@ class NavigationViewport  extends AnimationObject
 
           propagateEvent
 
-
-
   transformCurrent: (center, f) =>
     s = @currentState
 
@@ -261,6 +259,26 @@ class NavigationViewport  extends AnimationObject
 
     s
 
+  _ToViewportRect: (orig, w, h, rotation) =>
+    # TODO Optimize for rotation = 0
+    radRotation = toRadians(rotation)
+    sin = Math.sin(radRotation)
+    cos = Math.cos(radRotation)
+
+    sinW = sin*w
+    cosW = cos*w
+    sinH = sin*h
+    cosH = cos*h
+
+    points: [ # Ordered clockwise, starting by original top-left corner
+      orig
+      { x: orig.x + cosW, y: orig.y + sinW }
+      { x: orig.x + cosW - sinH, y: orig.y + sinW + cosH }
+      { x: orig.x - sinH, y: orig.y + cosH }
+    ]
+    width: w
+    height: h
+
   # Get the rect of the viewport represented by this state in base viewport coordinates
   stateToViewportRect: (s) =>
     # Ensure the center is [0,0]
@@ -275,24 +293,7 @@ class NavigationViewport  extends AnimationObject
     w = viewportDimensions.width * rel.scaleX
     h = viewportDimensions.height * rel.scaleY
 
-    # TODO Optimize for rel.rotation = 0
-    radRotation = toRadians(rel.rotation)
-    sin = Math.sin(radRotation)
-    cos = Math.cos(radRotation)
-
-    sinW = sin*w
-    cosW = cos*w
-    sinH = sin*h
-    cosH = cos*h
-
-    points: [ # Ordered clockwise, starting by original top-left corner
-      orig
-      { x: orig.x + cosW, y: orig.y + sinW }
-      { x: orig.x + cosW - sinH, y: orig.y + sinW + cosH }
-      { x: orig.x - sinH, y: orig.y + cosH }
-    ]
-    width: w
-    height: h
+    @_ToViewportRect(orig, w, h, rel.rotation)
 
   # Get the rect of this view in base viewport coordinates
   viewToViewportRect: (view) =>
@@ -303,27 +304,7 @@ class NavigationViewport  extends AnimationObject
 
     p = s.scalePoint((x: view.width, y: view.height))
 
-    w = p.x
-    h = p.y
-
-    # TODO Optimize for rel.rotation = 0
-    radRotation = toRadians(s.rotation)
-    sin = Math.sin(radRotation)
-    cos = Math.cos(radRotation)
-
-    sinW = sin*w
-    cosW = cos*w
-    sinH = sin*h
-    cosH = cos*h
-
-    points: [ # Ordered clockwise, starting by original top-left corner
-      orig
-      { x: orig.x + cosW, y: orig.y + sinW }
-      { x: orig.x + cosW - sinH, y: orig.y + sinW + cosH }
-      { x: orig.x - sinH, y: orig.y + cosH }
-    ]
-    width: w
-    height: h
+    @_ToViewportRect(orig, p.x, p.y, s.rotation)
 
   applyViewportLimits: () =>
     limits = @rectLimits
