@@ -1,8 +1,36 @@
 
 initInkscape = () ->
+  reviveClones()
   initInkscapeLayers()
   createMainNavigation()
   processDefaultInkscapeMetaDescs()
+
+reviveClones = () ->
+  $(".package").appendTo(svgNode).hide()
+
+  $(".reviveUse").each () ->
+    use = @
+    original = document.getElementById(use.getAttribute("xlink:href").substr(1))
+
+    clone = original.cloneNode(true)
+
+    # Apply attributes in the clone
+    mUse = localMatrix(use)
+    mClone = localMatrix(clone)
+    setTransform(clone, mUse.multiply(mClone))
+    setAttrs clone,
+      id: use.getAttribute("id")
+      x: getFloatAttr(use, "x", 0)
+      y: getFloatAttr(use, "y", 0)
+
+    useDesc = $(use).children("desc").appendTo(clone)
+
+    # Remove IDs in the subtree, as they would be duplicates
+    $(clone).find("*").removeAttr("id")
+
+    # TODO Do we need to remove any desc on clone? Give a warning?
+
+    $(use).replaceWith(clone)
 
 createMainNavigation = () ->
   mainNavigation = svgElement("g")
@@ -91,11 +119,19 @@ processDefaultInkscapeMetaDescs = () ->
   # Process __auto__ namespaces
   for [e, meta] in metas
     if meta.namespace == "__auto__"
-      parent = $(e).parent().closest(".AnimationObject")
-      parentIdx = parent.data("aoIdx")
-      parentMeta = metas[parentIdx][1]
-      # TODO Allow nested __auto__ namespaces
-      meta.namespace = AnimationObject.createFullName(parentMeta.namespace, parentMeta.name)
+      getNamespaceRecursive = (currEl) ->
+        parent = $(currEl).parent().closest(".AnimationObject")
+        parentIdx = parent.data("aoIdx")
+        parentMeta = metas[parentIdx]?[1]
+
+        if parentMeta?
+          if parentMeta.namespace == "__auto__"
+            parentMeta.namespace = getNamespaceRecursive(parent[0])
+          AnimationObject.createFullName(parentMeta.namespace, parentMeta.name)
+        else
+          "packageTemplate" # If parent is not found, we assume that it's a template
+
+      meta.namespace = getNamespaceRecursive(e)
 
   # Create the AnimationObjects
   for [e, meta] in metas
